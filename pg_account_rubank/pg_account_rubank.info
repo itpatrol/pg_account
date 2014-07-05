@@ -1,0 +1,8 @@
+; $Id: pg_account_rubank.info,v 1.2 2010/10/29 01:38:38 gor Exp $
+name = Withdraw from Account via Bank in Russia
+description = Some description here.
+package = "Commerce"
+dependencies[] = pg_account
+
+version = "6.x-1.x-dev"
+core = "6.x"

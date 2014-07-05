@@ -1,0 +1,46 @@
+<?php
+// $Id: pg_account_yandex.module,v 1.1 2010/10/28 01:51:44 gor Exp $
+
+/********************************************************************
+ * Pg_account Gateway Hooks
+ ********************************************************************/
+function pg_account_yandex_pgaccount_withdraw($op,$a3=NULL,$a4=NULL){
+  global $user;
+  switch($op){
+    case 'display name':
+        $ret = t('Yandex.Money');
+      break;
+    case 'form function':
+        $ret['title'] = t('Yandex.Money');
+        $ret['func'] = 'pg_account_yandex_moneyoutform';
+      break;
+    case 'operator form':
+        $ret = pg_account_yandex_operatorForm($a3);
+      break;      
+      
+  }
+  return $ret;
+}
+/********************************************************************
+ * Callback Functions
+ ********************************************************************/
+function pg_account_yandex_form(){
+
+  $form['purse'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Yandex.Money account number'),
+    '#description'   => t("Please, enter Yandex.Money account number."),
+    '#default_value' => $res->purse,
+    '#required'      => TRUE,
+    '#size'          => 15,
+  );
+  return $form;
+}
+
+function pg_account_yandex_operatorForm($t){
+  $form['purse'] = array(
+    '#type'          => 'markup',
+    '#value'         => t('Yandesx.Money').': '.$t->extra['purse'].'<br>',
+  );
+  return $form;
+}

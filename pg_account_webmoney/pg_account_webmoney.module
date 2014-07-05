@@ -1,0 +1,49 @@
+<?php
+// $Id: pg_account_webmoney.module,v 1.1 2010/10/28 01:51:44 gor Exp $
+
+/********************************************************************
+ * Pg_account Gateway Hooks
+ ********************************************************************/
+function pg_account_webmoney_pgaccount_withdraw($op,$a3=NULL,$a4=NULL){
+  global $user;
+  switch($op){
+    case 'display name':
+        $ret = t('Webmoney');
+      break;
+    case 'get form':
+        $form_result = $a3;
+        $ret = pg_account_webmoney_form($form_result);
+      break; 
+    case 'operator form':
+        $ret = pg_account_webmoney_operatorForm($a3);
+      break;      
+           
+  }
+  return $ret;
+}
+/********************************************************************
+ * Callback Functions
+ ********************************************************************/
+function pg_account_webmoney_form(){
+
+  $form['purse'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Webmoney purse'),
+    '#description'   => t("Please, enter Webmoney purse."),
+    '#default_value' => $res->purse,
+    '#required'      => TRUE,
+  );
+  return $form;
+}
+
+
+function pg_account_webmoney_operatorForm($t){
+  $form['purse'] = array(
+    '#type'          => 'markup',
+    '#value'         => t('Webmoney purse').': '.$t->extra['purse'].'<br>',
+  );
+  return $form;
+} 
+/********************************************************************
+ * Functions theme
+ ********************************************************************/

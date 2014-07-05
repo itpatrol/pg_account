@@ -1,0 +1,164 @@
+# $Id: pg_account.ru.po,v 1.1 2009/11/24 22:06:35 gor Exp $
+#
+# Russian translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  pg_account.admin.inc,v 1.4 2008/07/09 16:26:08 gor
+#  pg_account.module,v 1.4 2008/07/09 16:26:08 gor
+#  pg_account.install,v 1.2 2008/07/09 16:26:08 gor
+#  pg_account.info,v 1.1 2008/07/07 11:03:58 gor
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-06-24 04:08+0000\n"
+"PO-Revision-Date: 2009-06-24 04:08+0000\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Russian <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\n"
+
+#: pg_account.admin.inc:13
+msgid "!currency !amount"
+msgstr "!amount !currency"
+
+#: pg_account.admin.inc:26
+msgid "Your current balance is !currency !balance"
+msgstr "У вас в кошельке !balance !currency"
+
+#: pg_account.admin.inc:40
+msgid "Please, fill up you account"
+msgstr "Пожалуйста пополните свой кошелек"
+
+#: pg_account.admin.inc:54 pg_account.module:240
+msgid "Price"
+msgstr "Стоимость"
+
+#: pg_account.admin.inc:56
+msgid "<b>Price:</b> %price %currency_symbol"
+msgstr "<b>Стоимость:</b> %price %currency_symbol"
+
+#: pg_account.admin.inc:61
+msgid "Place your order"
+msgstr "Оформить и перейти к оплате"
+
+#: pg_account.admin.inc:75
+msgid "Your balance has been updated."
+msgstr "Ваш кошелек был пополнен"
+
+#: pg_account.admin.inc:83
+msgid "Rate to site currency"
+msgstr "Курс к валюте сайта"
+
+#: pg_account.admin.inc:85
+msgid "Please enter Account Balance rate according to site currency."
+msgstr "Введите соотношение единицы кошелька к валюте сайта"
+
+#: pg_account.admin.inc:89
+msgid "Symbol"
+msgstr "Символ валюты"
+
+#: pg_account.admin.inc:91
+msgid "Please enter symbol of the Account Balance currency."
+msgstr "Ввыедите символ единицы кошелька сайта"
+
+#: pg_account.admin.inc:96
+msgid "Update status of money out settings"
+msgstr "Обновить статус настроек вывода средств"
+
+#: pg_account.admin.inc:105
+msgid "%rate must be more 0."
+msgstr "%rate должен быть больше 0."
+
+#: pg_account.admin.inc:163
+msgid "Your current balance is: %currency %balance "
+msgstr "У вас в кошельке %balance %currency"
+
+
+#: pg_account.admin.inc:167
+msgid "Amount"
+msgstr "Количество"
+
+#: pg_account.admin.inc:167
+msgid "Fill up amount (!currency)"
+msgstr "Сумма пополнения (!currency)"
+
+#: pg_account.admin.inc:168
+msgid "Please enter amount to fill up balance."
+msgstr "Введите сумму для пополнения кошелька."
+
+#: pg_account.admin.inc:172
+msgid "Submit"
+msgstr "Отправить"
+
+#: pg_account.admin.inc:184
+msgid "Filling up of balance"
+msgstr "Пополнение кошелька"
+
+#: pg_account.module:159
+msgid "Payment from Account balance"
+msgstr "Оплата из кошелька лицевого счета"
+
+#: pg_account.module:167;248;72;119
+msgid "Balance"
+msgstr "Кошелек"
+
+#: pg_account.module:236
+msgid "Title"
+msgstr "Название"
+
+#: pg_account.module:244
+msgid "By method"
+msgstr "По методу"
+
+#: pg_account.module:15
+msgid "administer pg_account"
+msgstr "администрировать pg_account"
+
+#: pg_account.module:15
+msgid "has account"
+msgstr "имеет платежный кошелек"
+
+#: pg_account.module:120
+msgid "Account Balance payment settings."
+msgstr "Настройки платежного кошелька"
+
+#: pg_account.module:130
+msgid "Account Balance Payment"
+msgstr "Платеж из средств лицевого счета"
+
+#: pg_account.module:139
+msgid "Account Balance filled up"
+msgstr "Платежный кошелек пополнен"
+
+
+#: pg_account.install:26
+msgid "Stores balance information."
+msgstr "Сохраняет информацию кошелька"
+
+#: pg_account.install:28
+msgid "The {users}.uid of the user who is associated with the balance."
+msgstr "{users}.uid пользователя ассоциированного с кошельком"
+
+#: pg_account.install:34
+msgid "Money out fields."
+msgstr "Поля вывода средств."
+
+#: pg_account.install:44
+msgid "Money out queue."
+msgstr "Очередь вывода средств."
+
+#: pg_account.info:0
+msgid "Account"
+msgstr "Учетная Запись"
+
+#: pg_account.info:0
+msgid "Account with Balance."
+msgstr "Учетная запись с кошельком"
+
+#: pg_account.info:0
+msgid "Price"
+msgstr "Стоимость"
