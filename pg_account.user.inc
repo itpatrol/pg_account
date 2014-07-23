@@ -424,10 +424,9 @@ Your current Balance: !balance
 
 
 function pg_account_addFunds($form, $form_state = NULL){
-  if(is_object($form_state['t'])){
+  if(isset($form_state['t'])){
+    module_load_include('inc', 'pgapi', 'pgapi.pages');
     $form = pgapi_payment($form,$form_state,$form_state['t']);
-    print_r($form);
-    exit();
 //    $form['#theme'] = 'pgapi_payment';
     $form['#submit'] = array('pgapi_payment_submit');
   }else{
@@ -456,29 +455,25 @@ function pg_account_addFunds_validate($form, &$form_state) {
 function pg_account_addFunds_submit($form, &$form_state){
   global $user;
   if(empty($form_state['values']['txnid'])){
- /*   $t = (object)(NULL);
-    $amount = _pg_account_fixAmount($form_state['values']['amount']);
+    $transaction = new stdClass();
+    $amount = $form_state['values']['amount'];
     
-    $t->amount=$amount / pg_account_getCurrentRate();
-    $t->type='pg_account';
-    $t->uid=$user->uid;
-    $t->title=t('Add Funds to account for !user',array('!user' => $user->name));
-    $t->description=t('Add Funds to account for !user',array('!user' => $user->name));
-    $t = pgapi_transaction_save($t);
+    $transaction->amount = $amount;
+    $transaction->service='pg_account';
+    $transaction->uid = $user->uid;
+    $transaction->title = t('Add Funds to account for !user',array('!user' => $user->name));
+    $transaction->description = '';
+    pgapi_transaction_save($transaction);
     
     //the same to pg_account_transaction
-    $taccount = (object)(NULL);
-    $taccount->amount=$amount; //withdraw spuppost to be less than 0
-    $taccount->method='';
-    $taccount->uid=$user->uid;
-    $taccount->status=PG_PENDING;
-    $taccount->workflow=PG_WORKFLOW_RECEIVED;
-    $taccount->created=time();
-    $taccount->changed=time();
-    $taccount->pgapi_txnid = $t->txnid;
+    $taccount = new stdClass();
+    $taccount->amount = $amount; //withdraw spuppost to be less than 0;
+    $taccount->operation = PG_ACCOUNT_ADD_BALANCE;    
+    $taccount->uid = $user->uid;
+    $taccount->pgapi_txnid = $transaction->txnid;
     pg_account_transaction_save($taccount);
-    */
-    $form_state['t'] = $t;
+
+    $form_state['t'] = $transaction;
     $form_state['rebuild'] = TRUE;
   }else{
     
