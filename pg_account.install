@@ -1,53 +1,31 @@
 <?php
-// $Id: pg_account.install,v 1.2 2010/10/30 23:09:08 gor Exp $
 
 /**
- * Implementation of hook_install().
- */
-
-function pg_account_install() {
-  drupal_install_schema('pg_account');
-}
-
-/**
- * Implementation of hook_uninstall().
- */
-
-function pg_account_uninstall() {
-  drupal_uninstall_schema('pg_account');
-}
-
-/**
- * Implementation of hook_schema().
+ * Implemens hook_schema().
  */
 
 function pg_account_schema() {
   $schema['pg_account_balance'] = array(
-    'description' => t('Stores balance information.'),
+    'description' => 'Stores balance information.',
     'fields' => array(
-      'uid'      => array( 'type' => 'int','unsigned' => TRUE,'not null' => TRUE,'default' => 0,'description' => t('The {users}.uid of the user who is associated with the balance.'),),
+      'uid'      => array('type' => 'int','unsigned' => TRUE,'not null' => TRUE,'default' => 0,'description' => 'The {users}.uid of the user who is associated with the balance.',),
       'balance'  => array('type' => 'numeric', 'size' => 'normal', 'precision' => 12, 'scale' => 2, 'default' => 0),
-      'language' => array('type' => 'varchar',  'length' => 3, 'not null' => TRUE, 'default' => 'en'),
     ),
     'primary key' => array('uid'),
   );
 
   $schema['pg_account_transaction'] = array(
-    'description' => t('Transaction information.'),
+    'description' => 'Transaction information.',
     'fields' => array(
-      'txnid'    => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'uid'      => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
-      'amount'   => array('type' => 'numeric', 'size' => 'normal', 'precision' => 10, 'scale' => 2, 'default' => 0),
-      'method'   => array('type' => 'varchar',  'length' => 32, 'not null' => TRUE, 'default' => ''),
-      'status'   => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
-      'workflow' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
-      'extra'    => array('type' => 'text', 'default' => ''),
-      'created'  => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
-      'changed'  => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+      'txnid'       => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'uid'         => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+      'sender'      => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+      'amount'      => array('type' => 'numeric', 'size' => 'normal', 'precision' => 10, 'scale' => 2, 'default' => 0),
+      'operation'   => array('type' => 'varchar',  'length' => 32, 'not null' => TRUE, 'default' => ''),
       'pgapi_txnid' => array('type' => 'int', 'default' => 0),
-      'description' => array('type' => 'text', 'default' => ''),
     ),
     'indexes' => array('uid' => array('uid')),
+    'indexes' => array('sender' => array('sender')),    
     'primary key' => array('txnid'),
   );
 
@@ -56,44 +34,26 @@ function pg_account_schema() {
 }
 
 /**
- * Remove Old tables
+ * Implements hook_update_N().
  */
-function pg_account_update_0001() {
-  $ret = array();
-  db_drop_table($ret, 'pg_account_moneyout_fields'); 
-  db_drop_field($ret, 'pg_account_out_queue', 'extra');
-  db_drop_field($ret, 'pg_account_out_queue', 'type');
-  db_drop_field($ret, 'pg_account_out_queue', 'title');
-  db_drop_field($ret, 'pg_account_out_queue', 'email');
-  
-  db_change_field($ret, 'pg_account_out_queue', 'amount', 'amount', array('type' => 'numeric', 'size' => 'normal', 'precision' => 10, 'scale' => 2, 'default' => 0));
-  
-  db_rename_table($ret, 'pg_account_out_queue', 'pg_account_transaction');
-  
-  return $ret;
-}
-
-function pg_account_update_0002() {
-  $ret = array();
-  db_add_field($ret, 'pg_account_transaction', 'extra', array('type' => 'text', 'default' => ''));
-  return $ret;
-}
-
-function pg_account_update_0003() {
-  $ret = array();
-  db_add_field($ret, 'pg_account_transaction', 'pgapi_txnid', array('type' => 'int', 'default' => 0));
-  return $ret;
+function pg_account_update_7000() {
+  db_drop_field('pg_account_balance', 'language');
+  db_add_field('pg_account_transaction', 'sender', array('type' => 'int', 'not null' => TRUE, 'default' => 0));
+  db_add_field('pg_account_transaction', 'operation', array('type' => 'int', 'not null' => TRUE, 'default' => 0));
+  db_drop_field('pg_account_transaction', 'method');
+  db_drop_field('pg_account_transaction', 'status');
+  db_drop_field('pg_account_transaction', 'workflow');
+  db_drop_field('pg_account_transaction', 'extra');
+  db_drop_field('pg_account_transaction', 'created');
+  db_drop_field('pg_account_transaction', 'changed');
+  db_drop_field('pg_account_transaction', 'description');
 }
 
 
-function pg_account_update_0004() {
-  $ret = array();
-  db_add_field($ret, 'pg_account_transaction', 'description', array('type' => 'text', 'default' => ''));
-  return $ret;
+/**
+ * Implements hook_update_last_removed().
+ */
+function pg_account_update_last_removed() {
+  return 7000;
 }
 
-function pg_account_update_0005() {
-  $ret = array();
-  db_add_field($ret, 'pg_account_balance', 'language', array('type' => 'varchar',  'length' => 3, 'not null' => TRUE, 'default' => 'en'));
-  return $ret;
-}

@@ -196,3 +196,9 @@ function theme_pg_account_operator($data){
   ';
   return $output;
 }
+
+function theme_user_balance($vars){
+  $balance = pgapi_format_price($vars['balance']->balance);
+  $output = '<div class="balance"> '. t('Balance') . $balance . '</div>'; 
+  return $output;
+}

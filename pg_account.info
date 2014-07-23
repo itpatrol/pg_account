@@ -1,10 +1,9 @@
-; $Id: pg_account.info,v 1.2 2010/10/29 01:38:38 gor Exp $
-name = Account
-description = Account with Balance.
+name = PG Account
+description = Provide balance per user on Drupal website.
 package = "Commerce"
-dependencies[] = pgapi
-dependencies[] = altpager
-dependencies[] = formfilterapi
 
-version = "6.x-1.x-dev"
-core = "6.x"
+dependencies[] = altpager
+;dependencies[] = formfilterapi
+dependencies[] = pgapi
+
+core = "7.x"

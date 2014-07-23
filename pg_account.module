@@ -1,5 +1,6 @@
 <?php
-//  $Id: pg_account.module,v 1.3 2010/11/03 20:10:09 gor Exp $
+define('PG_ACCOUNT_ADD_BALANCE','add');
+define('PG_ACCOUNT_SUB_BALANCE','sub');
 
 
 /********************************************************************
@@ -7,14 +8,32 @@
  ********************************************************************/
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_permission().
  */
-function pg_account_perm() {
-  return array('administer pg_account', 'has account', 'pg_account operator','allow money withdraw', 'allow add funds');
+function pg_account_permission() {
+  // Add permission to admin pgapi.
+  return array(
+    'administer pg_account' => array(
+      'title' => t('Administer pg_account'),
+      'description' => t('NEED TO REPLACE'),
+      'restrict access' => TRUE,
+    ),
+    'pg_account balance' => array(
+      'title' => t('Balance'),
+      'description' => t('User pg_account balance'),
+      'restrict access' => TRUE,
+    ),
+    'pg_account operator' => array(
+      'title' => t('Operator'),
+      'description' => t('User can add or withdraw funds from user balance'),
+      'restrict access' => TRUE,
+    ),
+  );
 }
 
+
 /**
- * Implementation of hook_help().
+ * Implements hook_help().
  */
 function pg_account_help($path, $arg) {
   switch ($path) {
@@ -25,10 +44,10 @@ function pg_account_help($path, $arg) {
 
 
 /**
- * Implementation of hook_theme()
+ * Implements hook_theme()
  */
 function pg_account_theme() {
-   return array(
+  return array(
     'pg_account_complete' => array(
       'arguments' => array('t' => array()),
       'file' => 'pg_account.theme.inc',
@@ -53,12 +72,16 @@ function pg_account_theme() {
       'arguments' => array('data' => NULL),
       'file' => 'pg_account.theme.inc',
     ),
-   );
+    'user_balance' => array(
+      'arguments' => array('balance' => array()),
+      'file' => 'pg_account.theme.inc',
+    )
+  );
 }
 
 
 /**
- * Implementation of hook_mail()
+ * Implements hook_mail()
  */
 function pg_account_mail($key, &$message, $params) {
 	$language = $message['language'];
@@ -170,13 +193,13 @@ function pg_txnid_load($txnid) {
 }
 
 /**
- * Implementation of hook_user()
+ * Implements hook_user()
  */
 
 function pg_account_user($type, &$edit, &$user, $category = NULL) {
   switch ($type) {
     case 'load':
-      if(user_access('has account',$user)){
+      if(user_access('pg_account balance',$user)){
         $balance=pg_account_balance_load($user->uid);
 //        $user->balance=round($balance->balance / pg_account_getCurrentRate($user),2);
         $user->balance=$balance->balance;
@@ -190,7 +213,7 @@ function pg_account_user($type, &$edit, &$user, $category = NULL) {
 
 function pg_account_profileAccess($account = NULL) {
   global $user;
-  if(user_access('has account') && $account->uid == $user->uid){
+  if(user_access('pg_account balance') && $account->uid == $user->uid){
     return true;
   }
   if($user->uid == 1 or user_access('pg_account operator') or user_access('administer pg_account')){
@@ -201,24 +224,57 @@ function pg_account_profileAccess($account = NULL) {
 }
 
 /**
- * Implementation of menu_hook()
+ * Implements menu_hook()
  */
 
 
 function pg_account_menu() {
 
-  $items['user/%user/account'] = array(
-      'title'            => 'Website account',
-      'page callback'    => 'pg_account_account',
+  $items['user/%user/balance'] = array(
+      'title'            => 'User balance',
+      'page callback'    => 'pg_account_personal_history',
       'page arguments'   => array(1),
       'access callback'  => 'pg_account_profileAccess',
       'access arguments' => array(1),
-      'file'             => 'pg_account.admin.inc',
+      'file'             => 'pg_account.user.inc',
       'type'             => MENU_LOCAL_TASK,
       'weight'           => 31,
   );
+
+  $items['user/%user/balance/history'] = array(
+      'title'            => 'Transactions history',
+      'page callback'    => 'pg_account_personal_history',
+      'page arguments'   => array(1),
+      'access callback'  => 'pg_account_profileAccess',
+      'access arguments' => array(1),
+      'file'             => 'pg_account.user.inc',
+      'type'             => MENU_DEFAULT_LOCAL_TASK,
+      'weight'           => 0,
+  );
+
+  $items['user/%user/balance/add'] = array(
+      'title'            => 'Add Funds',
+      'page callback'    => 'pg_account_account_add',
+      'page arguments'   => array(1),
+      'access callback'  => 'pg_account_profileAccess',
+      'access arguments' => array(1),
+      'file'             => 'pg_account.user.inc',
+      'type'             => MENU_LOCAL_TASK,
+      'weight'           => 1,
+  );
+  $items['user/%user/balance/withdraw'] = array(
+      'title'            => 'Withdraw',
+      'page callback'    => 'pg_account_account_withdraw',
+      'page arguments'   => array(1),
+      'access callback'  => 'pg_account_profileAccess',
+      'access arguments' => array(1),
+      'file'             => 'pg_account.user.inc',
+      'type'             => MENU_LOCAL_TASK,
+      'weight'           => 2,
+  );
+
   
-  $items['admin/pgdata/pgsettings/pgaccount'] = array(
+  $items['admin/config/pgapi/gateway_settings/pgaccount'] = array(
       'title'           => 'Account',
       'description'     => 'Account payment settings.',
       'page callback'   => 'drupal_get_form',
@@ -227,6 +283,7 @@ function pg_account_menu() {
       'access arguments' => array('administer pgapi'),
       'file'            => 'pg_account.admin.inc',
       'type'            => MENU_LOCAL_TASK,
+      'weight'          => 0,
   );
 
   $items['admin/pgdata/pgaccount_settings'] = array(
@@ -327,7 +384,7 @@ function pg_account_menu() {
 }
 
 /**
- * Implementation of hook_formfilterapi().
+ * Implements hook_formfilterapi().
  */
  
 function pg_account_formfilterapi($op,$session_name,&$a1 = NULL){
@@ -525,7 +582,7 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
 }
 
 function pg_account_pgapi_transaction($op,$t){
-  if($t->method != 'pg_account' && $t->type == 'pg_account'){
+  if($t->gateway != 'pg_account' && $t->service == 'pg_account'){
 
     $account=user_load($t->uid);
 
@@ -616,114 +673,6 @@ function pg_account_extraform($form_state,$t){
     '#value' => t('We will charge !amount from your balance', array ('!amount' => pgapi_format_price('pg_account',$t->amount*pg_account_getCurrentRate(),pg_account_getCurrentSymbol($account)))),// $t->amount * pg_account_getCurrentRate()
   );
   return $form;
-}
-
-
-/********************************************************************
- * PACCOUNT Hooks
- ********************************************************************/
-
-
-function pg_account_accountTabs($op,&$a3=NULL,$a4=NULL){
-  global $user;
-  switch($op){
-    case 'info':
-        //$a3 is $account
-        $ret[0] = array (
-              'weight' => 0,
-              'title' => t('Filter results'),
-            );
-            
-        if($user->uid == $a3->uid){
-        
-          if(user_access('allow add funds')){
-            $ret[1] = array (
-                  'weight' => 1,
-                  'title' => t('Add funds'),
-                );
-          }
-        
-          if(user_access('allow money withdraw')){
-            $ret[2] = array (
-              'weight' => 2,
-              'title' => t('Withdraw'),
-            );
-          }
-        
-        }elseif(user_access('pg_account operator',$user)){
-            $ret[3] = array (
-              'weight' => 1,
-              'title' => t('Add funds'),
-            );
-            $ret[4] = array (
-              'weight' => 2,
-              'title' => t('Withdraw'),
-            );
-        
-        }
-      break;
-    case 'get form':
-        switch($a3){
-          case 0:
-              $ret = formfilterapi_getForm('pg_account_personal_history');
-            break;
-          case 1:
-              $ret = drupal_get_form('pg_account_addFunds');
-            break;
-          case 2:
-              if(user_access('allow money withdraw')){
-                $ret = drupal_get_form('pg_account_withdraw');
-              }
-            break;
-          case 3:
-              $ret = drupal_get_form('pg_account_addFundsByOperator',$a4);
-            break;
-          case 4:
-              $ret = drupal_get_form('pg_account_withdrawByOperator',$a4);
-            break;
-             
-        }
-      break; 
-  }
-  return $ret;
-}
-
-
-
-function pg_account_operatorTabs($op,&$a3=NULL,$a4=NULL){
-  global $user;
-  switch($op){
-    case 'info':
-        //$a3 is $account
-        $ret[0] = array (
-              'weight' => 0,
-              'title' => t('Filter results'),
-            );
-        $ret[1] = array (
-          'weight' => 1,
-          'title' => t('Add funds to'),
-        );
-        $ret[2] = array (
-          'weight' => 2,
-          'title' => t('Withdraw from'),
-        );
-      break;
-    case 'get form':
-        switch($a3){
-          case 0:
-              $ret = formfilterapi_getForm('pg_account_operator_history');
-            break;
-          case 1:
-              $ret = drupal_get_form('pg_account_addFundsByOperator',$a4);
-            break;
-          case 2:
-              $ret = drupal_get_form('pg_account_withdrawByOperator',$a4);
-            break;
-             
-        }
-      break; 
-  }
-  return $ret;
 }
 
 
@@ -819,66 +768,41 @@ function pg_account_get_method_name($module) {
   return $module_name;
 }
 
-function pg_account_transaction_load($txid) {
-  $t = db_fetch_object(db_query("SELECT * FROM {pg_account_transaction} WHERE txnid = %d", $txid));
-  $t->extra = unserialize($t->extra);
-  return $t;
+function pg_account_transaction_load($txnid) {
+  $transaction = db_query("SELECT * FROM {pg_account_transaction} WHERE txnid = :txnid", array ( ':txnid' => $txnid))->fetchObject;
+  return $transaction;
 }
-function pg_account_transaction_save($t) {
-  $t->extra=serialize($t->extra);
+function pg_account_transaction_save(&$t) {
   
-  if($t->txnid){
+  if(isset($t->txnid)){
     drupal_write_record('pg_account_transaction', $t,'txnid');
   }else{
     drupal_write_record('pg_account_transaction', $t);
   }
+  
 }
 
-function pg_account_balance_add($t) {
-  if($t->workflow != PG_WORKFLOW_COMPLETED){
-    $b=pg_account_balance_load($t->uid);
-    $amount = $t->amount;
+function pg_account_balance_add($data) {
+  
+  if($data->amount < 0){
+    //amount needs to be positive
+    return false;
+  }
+  $b = pg_account_balance_load($data->uid);
     
-    
-    if($b->norecord){
-      $b->balance = $amount;
-      $b->uid=$t->uid;
-
-      global $language;
-      $account = user_load($t->uid);
-      $b->language = $account->language ? $account->language : $language->language;
-    
-    
-      drupal_write_record('pg_account_balance', $b);
-    }else{
-      $b->balance = $b->balance + $amount;
-      drupal_write_record('pg_account_balance', $b, 'uid');
-    }
-    
-    if(!empty($t->txnid)){
-      $pgaccount_t=db_fetch_object(db_query('SELECT * FROM {pg_account_transaction} WHERE pgapi_txnid = %d',$t->txnid));
-    }
-    if(empty($pgaccount_t)){
-      //insert new
-      $pgaccount_t=(object)$t;
-      unset($pgaccount_t->txnid);
-      $pgaccount_t->amount = $amount;
-      $pgaccount_t->created=time();
-      $pgaccount_t->changed=time();
-      pg_account_transaction_save($pgaccount_t);
-    }
-    
-    //update old
-    $pgaccount_t->status=PG_COMPLETED;
-    $pgaccount_t->workflow=PG_WORKFLOW_COMPLETED;
-    pg_account_transaction_save($pgaccount_t);
-    
-	  module_invoke_all('pgaccount_newBalance', 'add',$b);
-    
-    return true;
+  if(isset($b->norecord)){
+    $b->balance = $data->amount;
+    $b->uid = $data->uid;
+    drupal_write_record('pg_account_balance', $b);
+  }else{
+    $b->balance = $b->balance + $data->amount;
+    drupal_write_record('pg_account_balance', $b, 'uid');
   }
   
-  return false;
+  module_invoke_all('pgaccount_balance', 'add',$data);
+  
+  return true;
+
 }
 
 function pg_account_balance_sub($values) {
@@ -893,18 +817,7 @@ function pg_account_balance_sub($values) {
     
     drupal_write_record('pg_account_balance', $b, 'uid');
     
-    $values->amount = (0- $sub);
-    
-    if(empty($values->status))
-      $values->status=PG_RECEIVED;
-      
-    if(empty($values->workflow))
-      $values->workflow=PG_WORKFLOW_RECEIVED;
-      
-    $values->created=time();
-    $values->changed=time();
-    pg_account_transaction_save($values);
-	  module_invoke_all('pgaccount_newBalance', 'sub',$b);
+	  module_invoke_all('pgaccount_balance', 'sub',$b);
 
     return true;
     
@@ -931,228 +844,6 @@ function pg_account_getActiveMoneyOutMethod(){
  * Other Functions
  ********************************************************************/
 
-function pg_account_addFundsByOperator(&$form_state,$account){
-
-  if(!empty($account)){
-    $form['uid'] = array(
-      '#type' => 'hidden',
-      '#value' => $account->uid,
-    );
-  }else{
-    $options=array();
-    $result = db_query('SELECT u.uid,name,balance FROM {users} u LEFT JOIN {pg_account_balance} b ON b.uid= u.uid WHERE u.uid > 0');
-    while($account = db_fetch_object($result)){
-      $options[$account->uid]= $account->name.' '.pgapi_format_price_plain('pg_account',$account->balance,pg_account_getCurrentSymbol($account));
-    }
-    
-    $form['uid'] = array(
-      '#type' => 'select',
-      '#title' => t('User'),
-      '#options' => $options,
-    );  
-  
-  }
-
-
-  $form['amount'] = array(
-    '#type'  => 'textfield',
-    '#title' => t('Amount'),
-    '#required'  => TRUE,
-  );
-  
-  $form['description'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Description'),
-    '#required'  => TRUE,
-  );
-    
-  $form['submit'] = array(
-    '#type'  => 'submit',
-    '#value' => t('Continue'),
-  );
-  return $form;
-
-}
-
-function pg_account_addFundsByOperator_validate($form, &$form_state) {
-  global $user;
-
-  if($form_state['values']['amount']<=0){
-    form_set_error('amount', t('Amount must be more than 0.'));
-  }
-  
-}
-
-function pg_account_addFundsByOperator_submit($form, &$form_state){
-  global $user;
-
-  $data = (object)(NULL);
-  $data->amount=$form_state['values']['amount'];
-  $data->method='manual';
-  $data->description=$form_state['values']['description']."\n".t('Processed by !user',array('!user'=>theme('username',$user)));
-  
-  
-  $data->uid=$form_state['values']['uid'];
-  
-  $account=user_load($data->uid);
-  
-  if(pg_account_balance_add($data)){
-    drupal_set_message(t('You added !formated_amount to !user account.',array('!user' => theme('username',$account),'!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ))));
-    
-    $language = user_preferred_language($account);
-    $variables = user_mail_tokens($account, $language);
-    
-    $variables['!formated_amount'] =  pgapi_format_price_plain('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) );
-  	$variables['!operatorname'] = $user->name;
-  	$variables['!reason'] = $form_state['values']['description'];
-  	
-  	$balance=pg_account_balance_load($account->uid);
-  	$variables['!balance'] = pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($account));
-  	
-  	  	
-    $notice->uid = $account->uid;
-    $notice->teaser = t('Balance updated by !operatorname. New balance is !balance', $variables, $language->language);
-    $notice->body = t("Dear !username
-Operator !operatorname added !formated_amount to your balance with comment :
-!reason
-
-Your current Balance: !balance
-", $variables, $language->language);
-    $notice->callback = 'pg_account';
-    
-    notice_save($notice);
-    
-    $admin_uid=variable_get('pg_account_admin_uid','1');
-    if(!empty($admin_uid)){
-      //notify admin about balance update
-      $noticeadmin->uid=$admin_uid;
-      $noticeadmin->teaser = t('Add !formated_amount funds to !username by !operatorname', $variables, $language->language);
-      $noticeadmin->body = t("Operator !operatorname added !formated_amount to !username balance with comment :
-  !reason
-  
-  New balance is: !balance
-  ", $variables, $language->language);
-      $noticeadmin->callback = 'pg_account';
-      notice_save($noticeadmin);
-    }    
-  }
-}
-
-
-function pg_account_withdrawByOperator(&$form_state,$account){
-  if(!empty($account)){
-    $form['uid'] = array(
-      '#type' => 'hidden',
-      '#value' => $account->uid,
-    );
-  }else{
-    $options=array();
-    $result = db_query('SELECT u.uid,name,balance FROM {users} u LEFT JOIN {pg_account_balance} b ON b.uid= u.uid WHERE u.uid > 0');
-    while($account = db_fetch_object($result)){
-      $options[$account->uid]= $account->name.' '.pgapi_format_price_plain('pg_account',$account->balance,pg_account_getCurrentSymbol($account));
-    }
-    
-    $form['uid'] = array(
-      '#type' => 'select',
-      '#title' => t('User'),
-      '#options' => $options,
-    );  
-  
-  }
-  
-  $form['amount'] = array(
-    '#type'  => 'textfield',
-    '#title' => t('Amount'),
-    '#required'  => TRUE,
-  );
-  
-  $form['description'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Description'),
-    '#required'  => TRUE,
-  );
-    
-  $form['submit'] = array(
-    '#type'  => 'submit',
-    '#value' => t('Continue'),
-  );
-  return $form;
-
-}
-
-function pg_account_withdrawByOperator_validate($form, &$form_state) {
-  global $user;
-  $balance = pg_account_balance_load($form_state['values']['uid']);
-
-  if($form_state['values']['amount']<=0){
-    form_set_error('amount', t('Amount must be more than 0.'));
-  }
-  
-  if($form_state['values']['amount'] > $balance->balance) {
-    form_set_error('amount', t('You tried to withdraw !formated_amount. You cannot withdraw more than !formated_balance.', array('!formated_balance' => pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($account) ), '!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ))));
-  }
-}
-
-function pg_account_withdrawByOperator_submit($form, &$form_state){
-  global $user;
-
-  $data = (object)(NULL);
-  $data->amount=$form_state['values']['amount'];
-  $data->method='manual';
-  $data->description=$form_state['values']['description']."\n".t('Processed by !user',array('!user'=>theme('username',$user)));
-  $data->status=PG_COMPLETED;
-  $data->workflow=PG_WORKFLOW_COMPLETED;
-  
-  $data->uid=$form_state['values']['uid'];
-  
-  $account=user_load($data->uid);
-  
-  if(pg_account_balance_sub($data)){
-    drupal_set_message(t('You withdraw !formated_amount from !user account.',array('!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ), '!user' => theme('username',$account))));
-
-    $language = user_preferred_language($account);
-    $variables = user_mail_tokens($account, $language);
-    
-    $variables['!formated_amount'] =  pgapi_format_price_plain('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) );
-  	$variables['!operatorname'] = $user->name;
-  	$variables['!reason'] = $form_state['values']['description'];
-  	
-  	$balance=pg_account_balance_load($account->uid);
-  	$variables['!balance'] = pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($account));
-  	
-  	  	
-    $notice->uid = $account->uid;
-    $notice->teaser = t('Balance updated by !operatorname. New balance is !balance', $variables, $language->language);
-    $notice->body = t("Dear !username
-Operator !operatorname withdraw !formated_amount from your balance with comment :
-!reason
-
-Your current Balance: !balance
-", $variables, $language->language);
-    $notice->callback = 'pg_account';
-    
-    notice_save($notice);
-    
-    $admin_uid=variable_get('pg_account_admin_uid','1');
-    if(!empty($admin_uid)){
-      //notify admin about balance update
-      $noticeadmin->uid=$admin_uid;
-      $noticeadmin->teaser = t('Withdraw !formated_amount funds from !username by !operatorname', $variables, $language->language);
-      $noticeadmin->body = t("Operator !operatorname withdraw !formated_amount from !username balance with comment :
-  !reason
-  
-  New balance is: !balance
-  ", $variables, $language->language);
-      $noticeadmin->callback = 'pg_account';
-      notice_save($noticeadmin);
-    } 
-    
-  }else{
-    drupal_set_message(t('We could not process your request.%user doesn\'t have enough money.', array( '%user' => theme('username',$account))));
-  }
-
-}
-
 function _pg_account_fixAmount($amount){
   $amount = str_replace(",", '.', $amount);
   $amount = preg_replace("/[^0-9.]/", '', $amount);
@@ -1161,156 +852,10 @@ function _pg_account_fixAmount($amount){
 }
  
 
-function pg_account_addFunds(&$form_state){
-  if(is_object($form_state['t'])){
-    $form = pgapi_payment($form_state,$form_state['t']);
-    $form['#theme'] = 'pgapi_payment';
-    $form['#submit'] = array('pgapi_payment_submit');
-  }else{
-    $form['amount'] = array(
-      '#type'  => 'textfield',
-      '#title' => t('Amount (!currency)',array('!currency'=>pg_account_getCurrentSymbol())),
-      '#required'  => TRUE,
-    );
-    
-    $form['submit'] = array(
-      '#type'  => 'submit',
-      '#value' => t('Continue'),
-    );
-    $form['#submit'] = array('pg_account_addFunds_submit');
-  }
-  return $form;
-}
-
-function pg_account_addFunds_validate($form, &$form_state) {
-  if(!isset($form_state['values']['txnid']) && $form_state['values']['amount'] < 0.01){
-    form_set_error('amount', t('Amount must be more than 0.009 .'));
-  }
-}
-
-function pg_account_addFunds_submit($form, &$form_state){
-  global $user;
-  if(empty($form_state['values']['txnid'])){
-    $t = (object)(NULL);
-    $amount = _pg_account_fixAmount($form_state['values']['amount']);
-    
-    $t->amount=$amount / pg_account_getCurrentRate();
-    $t->type='pg_account';
-    $t->uid=$user->uid;
-    $t->title=t('Add Funds to account for !user',array('!user' => $user->name));
-    $t->description=t('Add Funds to account for !user',array('!user' => $user->name));
-    $t = pgapi_transaction_save($t);
-    
-    //the same to pg_account_transaction
-    $taccount = (object)(NULL);
-    $taccount->amount=$amount; //withdraw spuppost to be less than 0
-    $taccount->method='';
-    $taccount->uid=$user->uid;
-    $taccount->status=PG_PENDING;
-    $taccount->workflow=PG_WORKFLOW_RECEIVED;
-    $taccount->created=time();
-    $taccount->changed=time();
-    $taccount->pgapi_txnid = $t->txnid;
-    pg_account_transaction_save($taccount);
-    
-    $form_state['t'] = $t;
-    $form_state['rebuild'] = TRUE;
-  }else{
-    
-    unset($form_state['t']);
-    $form_state['rebuild'] = TRUE;
-  }
-}
-
-function pg_account_withdraw(&$form_state){
-  $options=pg_account_getActiveMoneyOutMethod();
-  if(!empty($options)){
-    $default_method = key($options);
-	  $form['amount'] = array(
-	    '#type'  => 'textfield',
-	    '#title' => t('Amount (!currency)',array('!currency'=>pg_account_getCurrentSymbol())),
-      '#required'  => TRUE,
-	  );
-	  
-	  $form['method'] = array(
-	    '#title'   => t('Transfer to'),
-	    '#type'    => 'select',
-	    '#options' => $options,
-	    '#ahah' => array(
-        'path'    => 'pgaccount/withdraw_wrapper_js',
-        'wrapper' => 'moneyout-wrapper-process',
-        'method'  => 'replace',
-        'effect'  => 'slide',
-       ),
-	  );
-	  
-	  $form['method_details'] = array(
-	    '#tree'  => true,
-      '#prefix' => '<div id="moneyout-wrapper-process">',
-      '#suffix' => '</div>',
-	  );
-	  
-  	if(!empty($default_method)){
-      $extra_form=module_invoke($default_method, 'pgaccount_withdraw','get form', $form_state);
-      if(is_array($extra_form)){
-        $form['method_details'] += $extra_form;
-      }
-    } 
-  
-	  $form['submit'] = array(
-	    '#type'  => 'submit',
-	    '#value' => t('Continue'),
-	  );
-  }else{
-    //if has access 'administer pg_account'
-    if (user_access('administer pg_account')) {
-      $message= t('No one money widthdraw method enabled. Go to !link and enable it.',array('!link' => l(t('Withdraw settings'),'admin/pgdata/pgaccount_settings')));
-    }else{
-      $site_mail =variable_get('site_mail', ini_get('sendmail_from'));
-      $message= t('Please send mail to !site_mail to enable money withdraw for your account.',array( '!site_mail' => '<a href="mailto:' . $site_mail . '">' . $site_mail . '</a>'));
-    } 
-	  $form['message'] = array(
-	    '#type'  => 'markup',
-	    '#value' => $message,
-	  );
-  }
-  return $form;
-}
-
-
-function pg_account_withdraw_validate($form, &$form_state) {
-  global $user;
-  $balance = pg_account_balance_load($user->uid);
-
-  if($form_state['values']['amount']< 0.01){
-    form_set_error('amount', t('Amount must be more than 0.'));
-  }
-  
-  if($form_state['values']['amount'] > $balance->balance) {
-    form_set_error('amount', t('You tried to withdraw !formated_amount. You cannot withdraw more than !formated_balance.', array('!formated_balance'=>pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($user) ),'!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($user) ))));
-  }
-}
-
-function pg_account_withdraw_submit($form, &$form_state){
-  global $user;
-
-  $data = (object)(NULL);
-  $data->amount=$form_state['values']['amount'];
-  $data->method=$form_state['values']['method'];
-  $data->extra=$form_state['values']['method_details'];
-  $data->uid=$user->uid;
-  
-  if(pg_account_balance_sub($data)){
-    drupal_set_message(t('Our operators will process your request shortly.'));
-  }else{
-    drupal_set_message(t('We could not process your request.You don\'t have enough money.'));
-  }
-
-}
-
 function pg_account_balance_load($uid) {
-  $balance = db_fetch_object(db_query("SELECT * FROM {pg_account_balance} WHERE uid = '%d'", $uid));
+  $balance = db_query("SELECT * FROM {pg_account_balance} WHERE uid = :uid ", array(':uid' =>  $uid))->fetchObject();
   if(empty($balance)){
+    $balance = new stdClass();
     $balance->uid=$uid;
     $balance->balance = 0;
     $balance->norecord =true;
