@@ -257,7 +257,7 @@ function pg_account_menu() {
       'page callback'    => 'pg_account_account_add',
       'page arguments'   => array(1),
       'access callback'  => 'pg_account_profileAccess',
-      'access arguments' => array('pg_account balance'),
+      'access arguments' => array(1),
       'file'             => 'pg_account.user.inc',
       'type'             => MENU_LOCAL_TASK,
       'weight'           => 1,
@@ -285,20 +285,10 @@ function pg_account_menu() {
       'weight'          => 0,
   );
 
-  $items['admin/pgdata/pgaccount_settings'] = array(
-      'title'           => 'Withdraw settings',
-      'description'     => 'Account Balance withdraw settings.',
-      'page callback'   => 'drupal_get_form',
-      'page arguments'  => array('pgaccount_common'),
-      'access callback' => 'user_access',
-      'access arguments' => array('administer pg_account'),
-      'file'            => 'pg_account.admin.inc',
-  );
-  
   $items['admin/reports/pgaccount_transactions'] = array(
       'title'            => 'Account transactions',
       'description'      => 'Manage account transaction.',
-      'page callback'    => 'pg_account_operator',
+      'page callback'    => 'pg_account_history',
       'access callback'  => 'user_access',
       'access arguments' => array('pg_account operator'),
       'file'             => 'pg_account.admin.inc',
