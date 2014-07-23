@@ -480,6 +480,32 @@ function pg_account_addFunds_submit($form, &$form_state){
   }
 }
 
+function pg_account_account_send($form, &$form_state){
+
+  $form['amount'] = array(
+    '#type'  => 'textfield',
+    '#title' => t('Amount'),
+    '#required'  => TRUE,
+  );
+
+  $form['send_to'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#default_value' => '',
+    '#autocomplete_path' => 'user/autocomplete',
+    '#description' => t('Please enter username'),
+  );  
+  
+  $form['submit'] = array(
+    '#type'  => 'submit',
+    '#value' => t('Continue'),
+  );
+  return $form;
+}
+
+function pg_account_account_send_validate($form, &$form_state) {
+}
+
 function pg_account_withdraw($form,&$form_state){
   $options=pg_account_getActiveMoneyOutMethod();
   if(!empty($options)){

@@ -2,11 +2,6 @@
 define('PG_ACCOUNT_ADD_BALANCE','add');
 define('PG_ACCOUNT_SUB_BALANCE','sub');
 
-
-/********************************************************************
- * Drupal Hooks
- ********************************************************************/
-
 /**
  * Implements hook_permission().
  */
@@ -28,18 +23,12 @@ function pg_account_permission() {
       'description' => t('User can add or withdraw funds from user balance'),
       'restrict access' => TRUE,
     ),
+    'pg_account send money' => array(
+      'title' => t('Send money'),
+      'description' => t('User can send money to another user'),
+      'restrict access' => TRUE,
+    ),
   );
-}
-
-
-/**
- * Implements hook_help().
- */
-function pg_account_help($path, $arg) {
-  switch ($path) {
-    case 'admin/pgdata/pgaccount_settings':
-      return t('Replace it with HELP information.');
-  }
 }
 
 
@@ -267,6 +256,16 @@ function pg_account_menu() {
       'page callback'    => 'pg_account_account_withdraw',
       'page arguments'   => array(1),
       'access arguments' => array('pg_account operator'),
+      'file'             => 'pg_account.user.inc',
+      'type'             => MENU_LOCAL_TASK,
+      'weight'           => 2,
+  );
+
+  $items['user/%user/balance/send'] = array(
+      'title'            => 'Send money',
+      'page callback'   => 'drupal_get_form',
+      'page arguments'  => array('pg_account_account_send', 1),
+      'access arguments' => array('pg_account send money'),
       'file'             => 'pg_account.user.inc',
       'type'             => MENU_LOCAL_TASK,
       'weight'           => 2,
