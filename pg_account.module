@@ -294,34 +294,6 @@ function pg_account_menu() {
       'file'             => 'pg_account.admin.inc',
   );
 
-  $items['admin/reports/pgaccount_transactions/%pg_txnid/send'] = array(
-      'title'            => 'Send money',
-      'page callback'    => 'drupal_get_form',
-      'page arguments'   => array('pg_account_send',3),
-      'access callback'  => 'user_access',
-      'access arguments' => array('pg_account operator'),
-      'type'             => MENU_CALLBACK,
-      'file'             => 'pg_account.admin.inc',
-  );
-  $items['admin/reports/pgaccount_transactions/%pg_txnid/refund'] = array(
-      'title'            => 'Refund money',
-      'page callback'    => 'drupal_get_form',
-      'page arguments'   => array('pg_account_refund',3),
-      'access callback'  => 'user_access',
-      'access arguments' => array('pg_account operator'),
-      'type'             => MENU_CALLBACK,
-      'file'             => 'pg_account.admin.inc',
-  );
-  $items['admin/reports/pgaccount_transactions/%pg_txnid/cancel'] = array(
-      'title'            => 'Cancel transaction',
-      'page callback'    => 'drupal_get_form',
-      'page arguments'   => array('pg_account_cancel',3),
-      'access callback'  => 'user_access',
-      'access arguments' => array('pg_account operator'),
-      'type'             => MENU_CALLBACK,
-      'file'             => 'pg_account.admin.inc',
-  );
-    
 
   $items['payment/pgaccount/%txnid'] = array(
       'title'           => 'Account Balance Payment',
@@ -357,17 +329,6 @@ function pg_account_menu() {
       'type'            => MENU_CALLBACK,
       'file'             => 'pg_account.admin.inc',
     );
-
-  
-  /* AHAH parts*/
-  $items['pgaccount/withdraw_wrapper_js'] = array(
-      'title'            => 'Javascript Choice Form',
-      'page callback'    => 'pg_account_wrapper_js',
-      'page arguments'   => array(2),
-      'access arguments' => array('allow money withdraw'),
-      'type'             => MENU_CALLBACK,
-      'file'             => 'pg_account.admin.inc',
-  );  
   
   return $items;
 }
