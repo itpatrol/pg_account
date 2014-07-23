@@ -486,51 +486,6 @@ function pg_account_provideNotice($op){
  * Pgapi Gateway Hooks
  ********************************************************************/
 
-
-function pg_account_pgapi_format_price(){
-
-  $format['decimals']      = variable_get('pg_account_decimal_places', 2);
-  $format['dec_point']     = variable_get('pg_account_decimal', '.');
-  $format['thousands_sep'] = variable_get('pg_account_thousands', ',');
-  $format['position']      = variable_get('pg_account_symbol_position',TRUE);
-  $format['rate']          = variable_get('pg_account_rate',1);
-  $format['symbol']        = variable_get('pg_account_symbol','$');
-
-  $count=1;
-  if(module_exists('locale') ){
-    $lang_list = language_list('enabled');
-    $count = count($lang_list[1]);
-  }
-
-  if($count > 1 ){
-    
-    $langs=variable_get('pg_account_rates',array());
-    $default = language_default();
-    
-    $cur_lang=$default->language;
-    
-    global $user;
-    $balance=pg_account_balance_load($user->uid);
-    
-    if($balance->language != ''){
-      $cur_lang=$balance->language;
-    }
-    
-    if(isset($langs[$cur_lang])){
-      $format['decimals']      = $langs[$cur_lang]['pg_account_decimal_places'];
-      $format['dec_point']     = $langs[$cur_lang]['pg_account_decimal'];
-      $format['thousands_sep'] = $langs[$cur_lang]['pg_account_thousands'];
-      $format['position']      = $langs[$cur_lang]['pg_account_symbol_position'];
-      $format['rate']          = $langs[$cur_lang]['pg_account_rate'];
-      $format['symbol']        = $langs[$cur_lang]['pg_account_symbol'];
-    }
-    
-  }
-  
-
-  return $format;
-}
-
 function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
   global $user;
   switch($op){
