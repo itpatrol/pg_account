@@ -1,69 +1,31 @@
 
-#accountTools div.balance {
+div.balance {
   color: #65B33C;
   font-size: 18px;
 }
 
 
-#accountTools div.balance div.price {
+div.balance div.price {
   display: inline;
   color: #C74530;
-}
-
-  
-#accountTools ul.actions {
-  list-style: none;
-  width: 100%;
-  margin: 0px;
-  padding: 0px;
-  vertical-align: bottom;
-}
-
-
-#accountTools ul.actions li {
-  float: left;
-  font-size: 14px;
-  padding: 2px 10px 0px;
-  vertical-align: bottom;
-  line-height: 22px;
-}
-
-#accountTools ul.actions li.selected {
-  position: relative;
-  background: #DAF1FF;
-}
-
-#accountTools ul.actions li a {
-  vertical-align: bottom;
-}
-
-#accountForms div.wrapper {
-  display: none;
-}
-
-#accountForms div.wrapper{
-  padding: 5px;
-  background: #DAF1FF;
-}
-
-#accountForms .progress-disabled {
-  float: none;
+  padding-left: 10px;
 }
 
 
 /* table part */
 
-tr.sent td.amount {
+tr.sub td.amount {
   color: red;
 }
 
-tr.received td.amount {
+tr.add td.amount {
   color: green;
 }
 
 tr.status-1 {
   color: blue;
 }
+
 tr.status-4 td,tr.status-5 td,tr.status-6 td {
   background-color: #FF8E8E;
   color: white;
