@@ -39,7 +39,7 @@ function pg_account_personal_history($account){
 */  
   $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort');
   $query->fields('pat');    
-  $query->join('pgapi_transaction', 'pgt', 'pat.pgapi_txnid = %alias.txnid');
+  $query->leftjoin('pgapi_transaction', 'pgt', 'pat.pgapi_txnid = %alias.txnid');
   $query->fields('pgt');    
   $query->condition('pat.uid', $account->uid);
   $query->extend('TableSort');
@@ -48,7 +48,6 @@ function pg_account_personal_history($account){
   $transactions= $query->execute()->fetchAll();
 
   foreach ($transactions as $txn) {
-    $class = $txn->operation;
 
     $description = $txn->description ? $txn->description  : $txn->title;
 
@@ -56,18 +55,17 @@ function pg_account_personal_history($account){
         $description .= $txn->title.'<br>'.$txn->description;
     }
 
-    $class .= ' status-'.$txn->status.' workflow-'.$txn->workflow;
-    
+    $class = array($txn->operation, 'status-'.$txn->status, 'workflow-'.$txn->workflow );    
     
     $rows[] = array(
       'data' => array(
         array( 'data' => format_date($txn->changed,'custom','M d, Y'), 'class' => array('date')),
-        array( 'data' => pgapi_format_price($txn->amount), 'class' => array('amount',$class)),
+        array( 'data' => pgapi_format_price($txn->amount), 'class' => array('amount')),
         $description,
         pgapi_get_status($txn->status),
         pgapi_get_workflow($txn->workflow),
       ),
-      'class' => array($class),
+      'class' => $class,
     );
   }//while
   if(empty($rows)){
