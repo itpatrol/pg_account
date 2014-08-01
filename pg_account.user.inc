@@ -22,27 +22,21 @@ function pg_account_personal_history($account){
     $account = $user;
   }
   
-  //$filters = formfilterapi_build_filter_query('pg_account_personal_history');
   $header = array(
     'date' => array('data' => t('Date'), 'field' => 'pgt.changed', 'sort' => 'desc'),
     'amount' => array('data' => t('Amount'), 'field' => 'pgt.amount'),
     'description' => array('data' => t('Description')),
-    'status' => array('data' => t('Payment status'), 'field' => 'pgt.status'),
-    'workflow' => array('data' => t('Operation status'), 'field' => 'pgt.workflow'),
-
+    'status' => array('data' => t('Payment status'), 'field' => 'pgt.status')
   );
-/*  if(empty($filters['where'])){
-    $filters['where'] = "WHERE t.uid='".$account->uid."'";
-  } else {
-    $filters['where'] .= " AND t.uid='".$account->uid."'";
-  }
-*/  
-  $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort');
+
+  $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort')->extend('FormFilterAPI');
   $query->fields('pat');    
   $query->leftjoin('pgapi_transaction', 'pgt', 'pat.pgapi_txnid = %alias.txnid');
   $query->fields('pgt');    
   $query->condition('pat.uid', $account->uid);
+  $query->processFilters('pg_account_personal_history');
   $query->extend('TableSort');
+  
   $query->orderByHeader($header);
   
   $transactions= $query->execute()->fetchAll();
@@ -62,8 +56,7 @@ function pg_account_personal_history($account){
         array( 'data' => format_date($txn->changed,'custom','M d, Y'), 'class' => array('date')),
         array( 'data' => pgapi_format_price($txn->amount), 'class' => array('amount')),
         $description,
-        pgapi_get_status($txn->status),
-        pgapi_get_workflow($txn->workflow),
+        pgapi_get_status($txn->status)
       ),
       'class' => $class,
     );
@@ -75,6 +68,10 @@ function pg_account_personal_history($account){
   
   $balance = pg_account_balance_load($account->uid);
   $output = theme('user_balance', array( 'balance' => $balance));
+  
+  $form = formfilterapi_get_form('pg_account_personal_history');
+  $output .= drupal_render($form);
+  $output .= '<br>';  
   $output .= $pagerCountShow;
   $output .= '<div width=99% style="overflow-x: auto; ">';
   $output .=  theme('table', array( 'header' => $header, 'rows' => $rows));
@@ -218,7 +215,7 @@ function pg_account_addFundsByOperator_submit($form, &$form_state){
     
     pgapi_transaction_save($transaction);
     
-    drupal_set_message($transaction->title);
+    //drupal_set_message($transaction->title);
     //drupal_set_message(t('You added !formated_amount to !user account.',array('!user' => $account->name,'!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ))));
     /*
     $language = user_preferred_language($account);
@@ -373,7 +370,7 @@ function pg_account_withdrawByOperator_submit($form, &$form_state){
     
     pgapi_transaction_save($transaction);
   
-    drupal_set_message($transaction->title);
+    //drupal_set_message($transaction->title);
 /*    drupal_set_message(t('You withdraw !formated_amount from !user account.',array('!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ), '!user' => theme('username',$account))));
 
     $language = user_preferred_language($account);
@@ -423,7 +420,6 @@ Your current Balance: !balance
 
 function pg_account_addFunds($form, $form_state = NULL){
   if(isset($form_state['t'])){
-    module_load_include('inc', 'pgapi', 'pgapi.pages');
     $form = pgapi_payment($form,$form_state,$form_state['t']);
 //    $form['#theme'] = 'pgapi_payment';
     $form['#submit'] = array('pgapi_payment_submit');
