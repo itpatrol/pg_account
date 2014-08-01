@@ -490,6 +490,7 @@ function pg_account_account_send($form, &$form_state){
     '#default_value' => '',
     '#autocomplete_path' => 'user/autocomplete',
     '#description' => t('Please enter username'),
+    '#required'  => TRUE,    
   );  
   
   $form['submit'] = array(
@@ -500,6 +501,143 @@ function pg_account_account_send($form, &$form_state){
 }
 
 function pg_account_account_send_validate($form, &$form_state) {
+  global $user;
+  $balance = pg_account_balance_load($user->uid);
+  if($form_state['values']['amount']< 0.01){
+    form_set_error('amount', t('Amount must be more than 0.'));
+  }
+  
+  if ($send_to_account = user_load_by_name($form_state['values']['send_to'])) {
+    if($user->uid == $send_to_account->uid){
+      form_set_error('send_to', t('Please enter another account name.'));
+    }
+  }else{
+    form_set_error('send_to', t('User does not exist.'));
+  }
+  
+  if($form_state['values']['amount'] > $balance->balance) {
+    form_set_error('amount', t('You tried to withdraw !formated_amount. You cannot withdraw more than !formated_balance.', array(
+      '!formated_balance' => pgapi_format_price_plain($balance->balance),
+      '!formated_amount' => pgapi_format_price_plain($form_state['values']['amount']))));
+  }
+}
+
+function pg_account_account_send_submit($form, &$form_state) {
+  global $user;
+  //withdraw first
+  $account = $user;
+  $send_to_account = user_load_by_name($form_state['values']['send_to']);
+  $data = new stdClass();
+
+  $data->amount = $form_state['values']['amount'];
+
+  $data->description = $data->title = t('Send money to !user',array('!user'=>$send_to_account->name));
+  
+  $data->uid = $account->uid;
+  
+  //create transactions
+  $transaction = new stdClass();
+    
+  $transaction->amount = (0-$data->amount);
+
+  $transaction->gateway = 'pg_account';
+  $transaction->service = 'pg_account';
+
+  
+  if(!isset($data->uid)){
+    $data->uid = $user->uid;
+  }
+  $transaction->uid=$data->uid;
+  
+  if(!isset($data->sender)){
+    $data->sender = $user->uid;
+  }
+  
+  if(!isset($data->title)){
+    $data->title = t('Withdraw funds from !user',array('!user' => $account->name));
+  }
+  $transaction->title=$data->title;
+
+  $transaction->description=$data->description;  
+
+  pgapi_transaction_save($transaction);
+  
+  //the same to pg_account_transaction
+  $taccount = new stdClass();
+  $taccount->amount = (0 - $data->amount);
+  $taccount->operation = PG_ACCOUNT_SUB_BALANCE;
+  $taccount->uid = $data->uid;
+  $taccount->sender = $data->sender;
+  $taccount->pgapi_txnid = $transaction->txnid;
+  pg_account_transaction_save($taccount);
+  
+  $data->txnid = $taccount->txnid;
+  
+  if(pg_account_balance_sub($data)){
+    $transaction->status = pgapi_get_status_id('completed');
+    $transaction->workflow = pgapi_get_workflow_id('completed');
+    
+    pgapi_transaction_save($transaction);
+    
+    //add balance to $send_to_account
+    $account = $send_to_account;
+    $data = new stdClass();
+    $data->amount = $form_state['values']['amount'];
+    
+    $data->description = $data->title = t('Received money from !user',array('!user' => $user->name));
+    
+    $data->uid = $account->uid;
+
+    //create transactions
+    $transaction = new stdClass();
+      
+    $transaction->amount = $data->amount;
+  
+    $transaction->gateway = 'pg_account';
+    $transaction->service = 'pg_account';
+  
+    
+    if(!isset($data->uid)){
+      $data->uid = $user->uid;
+    }
+    $transaction->uid=$data->uid;
+    
+    if(!isset($data->sender)){
+      $data->sender = $user->uid;
+    }
+    
+    if(!isset($data->title)){
+      $data->title = t('Add Funds for !user',array('!user' => $account->name));
+    }
+    $transaction->title=$data->title;
+  
+    $transaction->description=$data->description;  
+  
+    pgapi_transaction_save($transaction);
+    
+    //the same to pg_account_transaction
+    $taccount = new stdClass();
+    $taccount->amount = $data->amount;
+    $taccount->operation = PG_ACCOUNT_ADD_BALANCE;
+    $taccount->uid = $data->uid;
+    $taccount->sender = $data->sender;
+    $taccount->pgapi_txnid = $transaction->txnid;
+    pg_account_transaction_save($taccount);
+    
+    $data->txnid = $taccount->txnid;
+    
+    if(pg_account_balance_add($data)){
+      $transaction->status = pgapi_get_status_id('completed');
+      $transaction->workflow = pgapi_get_workflow_id('completed');
+      
+      pgapi_transaction_save($transaction);
+    }
+
+    
+  }else{
+    drupal_set_message(t('We could not process your request.%user doesn\'t have enough money.', array( '%user' => $account->name)));
+  }
+  drupal_goto('/user/'.$user->uid.'/balance'); 
 }
 
 function pg_account_withdraw($form,&$form_state){
