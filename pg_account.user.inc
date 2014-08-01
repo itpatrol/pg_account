@@ -476,7 +476,9 @@ function pg_account_addFunds_submit($form, &$form_state){
   }
 }
 
-function pg_account_account_send($form, &$form_state){
+function pg_account_account_send($form, &$form_state, $from_user){
+
+  $form_state['uid'] =  $from_user->uid;
 
   $form['amount'] = array(
     '#type'  => 'textfield',
@@ -508,7 +510,7 @@ function pg_account_account_send_validate($form, &$form_state) {
   }
   
   if ($send_to_account = user_load_by_name($form_state['values']['send_to'])) {
-    if($user->uid == $send_to_account->uid){
+    if($user->uid == $send_to_account->uid OR $form_state['uid'] == $send_to_account->uid){
       form_set_error('send_to', t('Please enter another account name.'));
     }
   }else{
@@ -524,14 +526,20 @@ function pg_account_account_send_validate($form, &$form_state) {
 
 function pg_account_account_send_submit($form, &$form_state) {
   global $user;
+  
   //withdraw first
-  $account = $user;
+  $account = user_load($form_state['uid']);
   $send_to_account = user_load_by_name($form_state['values']['send_to']);
   $data = new stdClass();
 
   $data->amount = $form_state['values']['amount'];
 
-  $data->description = $data->title = t('Send money to !user',array('!user'=>$send_to_account->name));
+  $text = t('Send money to !user',array('!user'=>$send_to_account->name));
+  if($account->uid != $user->uid){
+    $data->description = $data->title = $text."\n".t('Processed by !user',array('!user'=>$user->name));
+  }else{
+    $data->description = $data->title = $text;    
+  }
   
   $data->uid = $account->uid;
   
@@ -580,13 +588,12 @@ function pg_account_account_send_submit($form, &$form_state) {
     pgapi_transaction_save($transaction);
     
     //add balance to $send_to_account
-    $account = $send_to_account;
     $data = new stdClass();
     $data->amount = $form_state['values']['amount'];
     
-    $data->description = $data->title = t('Received money from !user',array('!user' => $user->name));
+    $data->description = $data->title = t('Received money from !user',array('!user' => $account->name));
     
-    $data->uid = $account->uid;
+    $data->uid = $send_to_account->uid;
 
     //create transactions
     $transaction = new stdClass();
@@ -607,7 +614,7 @@ function pg_account_account_send_submit($form, &$form_state) {
     }
     
     if(!isset($data->title)){
-      $data->title = t('Add Funds for !user',array('!user' => $account->name));
+      $data->title = t('Add Funds for !user',array('!user' => $send_to_account->name));
     }
     $transaction->title=$data->title;
   
@@ -637,7 +644,7 @@ function pg_account_account_send_submit($form, &$form_state) {
   }else{
     drupal_set_message(t('We could not process your request.%user doesn\'t have enough money.', array( '%user' => $account->name)));
   }
-  drupal_goto('/user/'.$user->uid.'/balance'); 
+  drupal_goto('/user/'.$form_state['uid'].'/balance'); 
 }
 
 function pg_account_withdraw($form,&$form_state){
