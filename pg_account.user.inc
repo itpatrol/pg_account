@@ -86,7 +86,7 @@ function pg_account_account_add($account){
   if(empty($account)){
     $account = $user;
   }
-  if(user_access('pg_account operator',$user)){
+  if(user_access('pg_account operator',$user) && $user->uid != $account->uid){
     return drupal_get_form('pg_account_addFundsByOperator',$account);
   }else{
     return drupal_get_form('pg_account_addFunds');
