@@ -214,9 +214,10 @@ function pg_account_addFundsByOperator_submit($form, &$form_state){
     $transaction->workflow = pgapi_get_workflow_id('completed');
     
     pgapi_transaction_save($transaction);
+    drupal_set_message(t('You added  !formated_amount to !user account.', array(
+      '!user' => $account->name,
+      '!formated_amount' => pgapi_format_price_plain($data->amount))));
     
-    //drupal_set_message($transaction->title);
-    //drupal_set_message(t('You added !formated_amount to !user account.',array('!user' => $account->name,'!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ))));
     /*
     $language = user_preferred_language($account);
     $variables = user_mail_tokens($account, $language);
@@ -369,10 +370,12 @@ function pg_account_withdrawByOperator_submit($form, &$form_state){
     $transaction->workflow = pgapi_get_workflow_id('completed');
     
     pgapi_transaction_save($transaction);
-  
-    //drupal_set_message($transaction->title);
-/*    drupal_set_message(t('You withdraw !formated_amount from !user account.',array('!formated_amount'=>pgapi_format_price('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) ), '!user' => theme('username',$account))));
+    drupal_set_message(t('You withdraw !formated_amount from !user account.', array(
+      '!user' => $account->name,
+      '!formated_amount' => pgapi_format_price_plain($data->amount))));
+    
 
+/*
     $language = user_preferred_language($account);
     $variables = user_mail_tokens($account, $language);
     
