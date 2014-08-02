@@ -3,20 +3,21 @@
 function pg_account_history(){
   drupal_add_css(drupal_get_path('module', 'pg_account') .'/css/pg_account.css');
 
-//  $filters = formfilterapi_build_filter_query('pg_account_operator_history');
   $header = array(
     'date' => array('data' => t('Date'), 'field' => 'pgt.changed', 'sort' => 'desc'),
     'amount' => array('data' => t('Amount'), 'field' => 'pgt.amount'),
     'user' => array('data' => t('User'), 'field' => 'u.name'),
     'description' => array('data' => t('Description')),
     'status' => array('data' => t('Payment status'), 'field' => 'pgt.status'),
-    'workflow' => array('data' => t('Operation status'), 'field' => 'pgt.workflow')
   );
 
-  $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort');
+  $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort')->extend('FormFilterAPI');
   $query->fields('pat');    
   $query->leftjoin('pgapi_transaction', 'pgt', 'pat.pgapi_txnid = %alias.txnid');
-  $query->fields('pgt');    
+  $query->fields('pgt');
+  $query->leftjoin('users', 'u', 'pat.uid = %alias.uid');
+  $query->fields('u',array('name'));
+  $query->processFilters('pg_account_operator_history');  
   $query->extend('TableSort');
   $query->orderByHeader($header);
   
@@ -39,7 +40,6 @@ function pg_account_history(){
         theme('username',array('account' => $account)),
         $description,
         pgapi_get_status($txn->status),
-        pgapi_get_workflow($txn->workflow),
       ),
       'class' => $class,
     );
@@ -49,8 +49,11 @@ function pg_account_history(){
     $rows[] = array(array('data' => t('No data available.'), 'colspan' => '6'));
   }
   $pagerCountShow = theme('altpager');
-  
-  $output = $pagerCountShow;
+
+  $form = formfilterapi_get_form('pg_account_operator_history');
+  $output = drupal_render($form);
+  $output .= '<br>'; 
+  $output .= $pagerCountShow;
   $output .= '<div width=99% style="overflow-x: auto; ">';
   $output .=  theme('table', array( 'header' => $header, 'rows' => $rows));
   $output .= "</div>";

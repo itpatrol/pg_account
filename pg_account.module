@@ -424,36 +424,31 @@ function pg_account_formfilterapi($op,$session_name,&$a1 = NULL){
             $filters['name']= array(
               '#type'  => 'textfield',
               '#title' => t('User'),
-              '#where' => "u.name='%s'",
+              '#where' => "u.name",
             );
           
             $filters['price']= array(
               '#type'  => 'textfield',
               '#title' => t('Amount'),
-              '#where' => "abs(t.amount)=abs('%f')",
+              '#where' => "pgt.amount",
             );
             $filters['action']= array(
-              '#type'  => 'select',  
+              '#type'  => 'select',
               '#title' => t('Payments'),
-              '#where' => "t.amount %s",
+              '#where' => array('operation' => "pgt.amount"),
               '#options' => array(
-                ' > 0' => t('received'),
-                ' < 0' => t('sent'),
+                '> 0' => t('received'),
+                '< 0' => t('sent'),
               ),
             );
           
             $filters['status'] = array(
-              '#type'  => 'select',  
+              '#type'  => 'select',
               '#title' => t('Payment status'),
-              '#where' => 't.status = %d',
+              '#where' => 'pgt.status',
               '#options' => pgapi_build_status(),
-            );
-            $filters['worflow_status'] = array(
-              '#type'  => 'select',  
-              '#title' => t('Operation status'),
-              '#where' => 't.workflow = %d',
-              '#options' => pgapi_build_workflow(),
-            );
+            );          
+
         break;
             
     }
