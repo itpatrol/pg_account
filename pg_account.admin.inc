@@ -285,8 +285,7 @@ function pg_account_settings(){
 
 
 function pg_account_settings_submit($form, &$form_state){
-  print_r($form_state);
-  exit();
+
   variable_set('pg_account_roles',$form_state['values']['pg_account_roles']);
 
   variable_set('pg_account_admin_title_add',$form_state['values']['pg_account_admin_title_add']);
