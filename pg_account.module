@@ -59,6 +59,14 @@ This transaction related to: [pg_account:description]
 
 
 /**
+ * Implementation of hook_cron()
+ */
+
+function pg_account_cron(){
+  pg_account_process_oldtransaction();
+}
+
+/**
  * Implements hook_permission().
  */
 function pg_account_permission() {
@@ -105,18 +113,6 @@ function pg_account_theme() {
       'arguments' => array('t' => array()),
       'file' => 'pg_account.theme.inc',
     ),
-    'pg_account_filters' => array(
-      'arguments' => array('form' => NULL),
-      'file' => 'pg_account.theme.inc',
-    ),
-    'pg_account_account' => array(
-      'arguments' => array('data' => NULL),
-      'file' => 'pg_account.theme.inc',
-    ),
-    'pg_account_operator' => array(
-      'arguments' => array('data' => NULL),
-      'file' => 'pg_account.theme.inc',
-    ),
     'user_balance' => array(
       'arguments' => array('balance' => array()),
       'file' => 'pg_account.theme.inc',
@@ -124,117 +120,12 @@ function pg_account_theme() {
   );
 }
 
-
-/**
- * Implements hook_mail()
- */
-function pg_account_mail($key, &$message, $params) {
-	$language = $message['language'];
-	$variables = user_mail_tokens($params['user'], $language);
-	
-	if($params['t']){
-  	$t=$params['t'];
-  	$variables['!txnid'] = $t->txnid;
-  	$new_balance= balance_load($t->uid);
-  	
-  	$format = module_invoke('pg_account', 'pgapi_format_price');
-    $formated_price = number_format($new_balance->balance,$format['decimals'],$format['dec_point'],$format['thousands_sep']);
-    $formated = theme('pgapi_format_price_plain',$formated_price,$params['payment_method']->symbol,$format['position']);
-    
-  	$variables['!balance'] = $formated;
-	}else{
-	  $new_balance= balance_load($params['user']->uid);
-  	$format = module_invoke('pg_account', 'pgapi_format_price');
-    $formated_price = number_format($new_balance->balance,$format['decimals'],$format['dec_point'],$format['thousands_sep']);
-    $formated = theme('pgapi_format_price_plain',$formated_price,$params['payment_method']->symbol,$format['position']);
-    
-  	$variables['!balance'] = $formated;
-
-	}
-	
-	if($params['formated_amount']){
-	  $variables['!formated_amount'] = $params['formated_amount'];
-	}
-	if($params['operator']){
-	  $variables['!operatorname'] = $params['operator']->name;
-	}
-
-	if($params['reason']){
-	  $variables['!reason'] = $params['reason'];
-	}
-
-
-	switch($key) {
-		case PG_COMPLETED:
-				$message['subject'] = t('Balance Notification from !site', $variables, $language->language);
-				$message['body'][] = t("Dear !username
-Your Payment #!txnid has been completed.
-
-Current Balance: !balance
-
-Best regards,
-!site
-", $variables, $language->language);
-			break;
-    case PG_DENIED:
-		case PG_FAILED:
-				$message['subject'] = t('Balance Notification from !site', $variables, $language->language);
-				$message['body'][] = t("Dear !username
-Your Payment #!txnid has been canceled.
-
-Current Balance: !balance
-
-Best regards,
-!site
-", $variables, $language->language);
-			break;
-		case 'withdrawFunds':
-				$message['subject'] = t('Balance Notification from !site', $variables, $language->language);
-				$message['body'][] = t("Dear !username
-Operator !operatorname withdraw !formated_amount from your balance with comment :
-!reason
-
-Your current Balance: !balance
-
-Best regards,
-!site
-", $variables, $language->language);		
-		  break;
-		case 'addFunds':
-				$message['subject'] = t('Balance Notification from !site', $variables, $language->language);
-				$message['body'][] = t("Dear !username
-Operator !operatorname added !formated_amount to your balance with comment :
-!reason
-
-Your current Balance: !balance
-
-Best regards,
-!site
-", $variables, $language->language);		
-		  break;
-		  
-
-	}
-}
-
-
-
-
 /**
  * IMenu callback; loads a balance object
  */
 function balance_load($uid) {
   $uid=(int)$uid;
   return pg_account_balance_load($uid);
-}
-
-
-/**
- * IMenu callback; loads a txnid object
- */
-function pg_txnid_load($txnid) {
-  $txnid=(int)$txnid;
-  return pg_account_transaction_load($txnid);
 }
 
 /**
@@ -246,9 +137,7 @@ function pg_account_user($type, &$edit, &$user, $category = NULL) {
     case 'load':
       if(user_access('pg_account balance',$user)){
         $balance=pg_account_balance_load($user->uid);
-//        $user->balance=round($balance->balance / pg_account_getCurrentRate($user),2);
-        $user->balance=$balance->balance;
-        $user->balance_currency = pg_account_getCurrentSymbol($user);
+        $user->balance = $balance->balance
       }
       return $user;
     case 'delete':
@@ -535,9 +424,6 @@ function pg_account_pgapi_transaction($op,$t){
   if($t->gateway != 'pg_account' && $t->service == 'pg_account'){
 
     $account=user_load($t->uid);
-
- //   $language = user_preferred_language($mailaccount);
-//    $variables = user_mail_tokens($account, $language);
     
   	$balance=pg_account_balance_load($t->uid);
   	$variables['!balance'] = pgapi_format_price($balance->balance);
@@ -625,98 +511,9 @@ function pg_account_extraform($form_state,$t){
   return $form;
 }
 
-
-/********************************************************************
- * PACCOUNT API Functions
- ********************************************************************/
-
-function pg_account_getCurrentSymbol($account=0){
-  $symbol = variable_get('pg_account_symbol','$');
-  $count=1;
-  
-  if(module_exists('locale') ){
-    $lang_list = language_list('enabled');
-    $count = count($lang_list[1]);
-  }
-
-  if($count > 1 ){
-    
-    $langs=variable_get('pg_account_rates',array());
-    $default = language_default();
-    
-    $cur_lang=$default->language;
-    
-    if(empty($account)){
-      global $user;
-      $account=$user;
-    }
-
-    $balance=pg_account_balance_load($account->uid);
-    
-    if($balance->language != ''){
-      $cur_lang=$balance->language;
-    }elseif(!empty($account->language)){
-      $cur_lang=$account->language;
-    }
-    
-    if(isset($langs[$cur_lang])){
-      $symbol = $langs[$cur_lang]['pg_account_symbol'];
-    }
-  }
-  return $symbol;
-}
-
-function pg_account_getCurrentRate($account=0){
-  $rate = variable_get('pg_account_rate','1.00');
-  $count=1;
-  
-  if(module_exists('locale') ){
-    $lang_list = language_list('enabled');
-    $count = count($lang_list[1]);
-  }
-
-  if($count > 1 ){
-    
-    $langs=variable_get('pg_account_rates',array());
-    $default = language_default();
-    
-    $cur_lang=$default->language;
-    
-    if(empty($account)){
-      global $user;
-      $account=$user;
-    }
-    $balance=pg_account_balance_load($account->uid);
-    
-    if($balance->language != ''){
-      $cur_lang=$balance->language;
-    }elseif(!empty($account->language)){
-      $cur_lang=$account->language;
-    }
-    
-    if(isset($langs[$cur_lang])){
-      $rate = $langs[$cur_lang]['pg_account_rate'];
-    }
-  }
-  return $rate;
-}
-
-
-
-function pg_account_build_method(){
- foreach (module_implements('pgaccount_withdraw') as $module) {
-    if ($module_name= module_invoke($module, 'pgaccount_withdraw','display name')) {
-      $methods[$module]= $module_name;
-    }
-  }
-  return $methods;
-}
-
-
-function pg_account_get_method_name($module) {
-  $module_name = module_invoke($module, 'pgaccount_withdraw','display name');
-  return $module_name;
-}
+/*
+ * API
+ */
 
 function pg_account_transaction_load($txnid) {
   $transaction = db_query("SELECT * FROM {pg_account_transaction} WHERE txnid = :txnid", array ( ':txnid' => $txnid))->fetchObject;
@@ -775,31 +572,6 @@ function pg_account_balance_sub($values) {
   
   return false;
 }
-
-function pg_account_getActiveMoneyOutMethod(){
-  $options=array();
-  $pgaccount_withdraw=variable_get('pgaccount_withdraw',array());
-  foreach (module_implements('pgaccount_withdraw') as $module) {
-    if ($module_name= module_invoke($module, 'pgaccount_withdraw','display name')) {
-      if($pgaccount_withdraw[$module]){
-        $options[$module] = $module_name;        
-      }
-    }
-  }
-  return $options;
-
-}
-
-/********************************************************************
- * Other Functions
- ********************************************************************/
-
-function _pg_account_fixAmount($amount){
-  $amount = str_replace(",", '.', $amount);
-  $amount = preg_replace("/[^0-9.]/", '', $amount);
-  
-  return $amount;
-}
  
 
 function pg_account_balance_load($uid) {
@@ -813,40 +585,22 @@ function pg_account_balance_load($uid) {
   return $balance;
 }
 
-function pg_account_balance_value($uid) {
-  $balance = db_fetch_object(db_query("SELECT * FROM {pg_account_balance} WHERE uid = '%d'", $uid));
-  if ($balance) return $balance->balance;
-  return 0;
-}
-
-function pg_account_balance_save($uid,$balance) {
-  db_query("DELETE FROM {pg_account_balance} WHERE uid = '%d'", $uid);
-  $b->uid=$uid;
-  $b->balance=$balance;
-  drupal_write_record('pg_account_balance', $b);
-
-  return $balance;
-}
-
 function pg_account_process_oldtransaction($uid=0){
   if($uid==0){
-    $result=db_query('SELECT * FROM {pg_account_transaction} WHERE status = %d',PG_PENDING);
+    $transactions = db_query('SELECT * FROM {pg_account_transaction} WHERE status = :status', array( ':status' => PG_PENDING))->fetchAll();
   }else{
-    $result=db_query('SELECT * FROM {pg_account_transaction} WHERE status = %d AND uid = %d',PG_PENDING, $uid);
+    $transactions = db_query('SELECT * FROM {pg_account_transaction} WHERE status = %d AND uid = :uid', array( ':status' => PG_PENDING, ':uid' => $uid))->fetchAll();
   }
-  while($t = db_fetch_object($result)) {
+  foreach($transactions as $t){
 
     //cancel orders with no payment more that 7 days
     $remove=86400*7;
     if( $t->status == PG_PENDING && $t->created < time()-$remove){
-    
       $t->status = PG_CANCELED;
       $t->status = pgapi_get_status_id('canceled');
       $t->workflow = pgapi_get_workflow_id('canceled');
       $t->description = t('Transaction marked canceled due no payment for more than 7 days');
       pg_account_transaction_save($t);
-      watchdog('billing', 'set status canceled for account transaction !txnid ', array('!txnid' => $t->txnid), WATCHDOG_NOTICE);
-      
     }
   } 
 }
