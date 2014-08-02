@@ -1,6 +1,62 @@
 <?php
+/**
+ * Constants.
+ */
+
 define('PG_ACCOUNT_ADD_BALANCE','add');
 define('PG_ACCOUNT_SUB_BALANCE','sub');
+
+define('PG_ACCOUNT_ADD_BALANCE_ADMIN_TITLE', 'Balance for [pg_account:username] changed by [pg_account:operatorname]. Added [pg_account:amount]. New balance is [pg_account:balance]');
+define('PG_ACCOUNT_ADD_BALANCE_ADMIN_MESSAGE', 'User: [pg_account:username]
+Operator: [pg_account:operatorname]
+Added: [pg_account:amount]
+Balance: [pg_account:balance]
+
+Provided description: [pg_account:description]
+[site:url]');
+
+define('PG_ACCOUNT_SUB_BALANCE_ADMIN_TITLE', 'Balance for [pg_account:username] changed by [pg_account:operatorname]. Withdraw [pg_account:amount]. New balance is [pg_account:balance]');
+define('PG_ACCOUNT_SUB_BALANCE_ADMIN_MESSAGE', 'User: [pg_account:username]
+Operator: [pg_account:operatorname]
+Withdraw: [pg_account:amount]
+Balance: [pg_account:balance]
+
+Provided description: [pg_account:description]
+[site:url]');
+
+
+define('PG_ACCOUNT_ADD_BALANCE_USER_TITLE', 'Your Balance changed on [pg_account:amount]. New balance is [pg_account:balance]');
+define('PG_ACCOUNT_ADD_BALANCE_USER_MESSAGE', 'Dear [pg_account:username]!
+We added [pg_account:amount] on your balance.
+Your new balance is [pg_account:balance].
+
+This transaction related to: [pg_account:description]
+[site:url]');
+
+define('PG_ACCOUNT_SUB_BALANCE_USER_TITLE', 'Your Balance changed on [pg_account:amount]. New balance is [pg_account:balance]');
+define('PG_ACCOUNT_SUB_BALANCE_USER_MESSAGE', 'Dear [pg_account:username]!
+We withdraw [pg_account:amount] from your balance.
+Your new balance is [pg_account:balance].
+
+This transaction related to: [pg_account:description]
+[site:url]');
+
+define('PG_ACCOUNT_SEND_BALANCE_USER_TITLE', 'Your Balance changed on [pg_account:amount]. New balance is [pg_account:balance]');
+define('PG_ACCOUNT_SEND_BALANCE_USER_MESSAGE', 'Dear [pg_account:username]!
+We transfered [pg_account:amount] from your balance to [pg_account:username_received]
+Your new balance is [pg_account:balance].
+
+This transaction related to: [pg_account:description]
+[site:url]');
+
+define('PG_ACCOUNT_RECEIVE_BALANCE_USER_TITLE', 'Your Balance changed on [pg_account:amount]. New balance is [pg_account:balance]');
+define('PG_ACCOUNT_RECEIVE_BALANCE_USER_MESSAGE', 'Dear [pg_account:username_received]!
+We transfered [pg_account:amount] from [pg_account:username] to your balance.
+Your new balance is [pg_account:balance].
+
+This transaction related to: [pg_account:description]
+[site:url]');
+
 
 /**
  * Implements hook_permission().

@@ -217,44 +217,68 @@ function pg_account_addFundsByOperator_submit($form, &$form_state){
     drupal_set_message(t('You added  !formated_amount to !user account.', array(
       '!user' => $account->name,
       '!formated_amount' => pgapi_format_price_plain($data->amount))));
-    
-    /*
-    $language = user_preferred_language($account);
-    $variables = user_mail_tokens($account, $language);
-    
-    $variables['!formated_amount'] =  pgapi_format_price_plain('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) );
-  	$variables['!operatorname'] = $user->name;
-  	$variables['!reason'] = $form_state['values']['description'];
-  	
-  	$balance=pg_account_balance_load($account->uid);
-  	$variables['!balance'] = pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($account));
-  	
-  	  	
-    $notice->uid = $account->uid;
-    $notice->teaser = t('Balance updated by !operatorname. New balance is !balance', $variables, $language->language);
-    $notice->body = t("Dear !username
-Operator !operatorname added !formated_amount to your balance with comment :
-!reason
 
-Your current Balance: !balance
-", $variables, $language->language);
-    $notice->callback = 'pg_account';
+
+    //create tokens data
+    $tokens['username'] = $account->name;
+    $tokens['operatorname'] = $user->name;
+    $tokens['description'] = $form_state['values']['description'];
+    $tokens['amount'] = pgapi_format_price_plain($data->amount);
     
-    notice_save($notice);
-    
-    $admin_uid=variable_get('pg_account_admin_uid','1');
-    if(!empty($admin_uid)){
-      //notify admin about balance update
-      $noticeadmin->uid=$admin_uid;
-      $noticeadmin->teaser = t('Add !formated_amount funds to !username by !operatorname', $variables, $language->language);
-      $noticeadmin->body = t("Operator !operatorname added !formated_amount to !username balance with comment :
-  !reason
+    $balance=pg_account_balance_load($account->uid);
+    $tokens['balance'] = pgapi_format_price_plain($balance->balance);
+                  
+    $roles = variable_get('pg_account_roles',array());
+    if(!empty($roles)){
+      $sent_uids = array();
+      foreach($roles as $rid => $val){
+        if($val){
+          //get users
+          $users = db_select('users_roles', 'ur')
+          ->fields('ur',array('uid'))
+          ->condition('ur.rid',$rid)
+          ->execute()
+          ->fetchAll();
+          foreach($users as $u){
+            if(!in_array($u->uid,$sent_uids)){
+              $sent_uids[]=$u->uid;
   
-  New balance is: !balance
-  ", $variables, $language->language);
-      $noticeadmin->callback = 'pg_account';
-      notice_save($noticeadmin);
-    }    */
+              //send notice
+              $notice = new stdClass();
+              $notice->uid = $u->uid;
+              $notice->provider = 'pg_account'; 
+              
+              $message = t(variable_get('pg_account_admin_message_add_body',PG_ACCOUNT_ADD_BALANCE_ADMIN_MESSAGE));
+              
+              $notice->message = token_replace($message, array('pg_account' => $tokens));
+
+              $subject = t(variable_get('pg_account_admin_title_add',PG_ACCOUNT_ADD_BALANCE_ADMIN_TITLE));
+              
+              $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+
+              $notice->format = variable_get('pg_account_admin_message_add_format','filtered_html');
+              notices_save($notice);
+            }
+          }
+        }
+      }
+    }
+    
+    $notice = new stdClass();
+    $notice->uid = $data->uid;
+    $notice->provider = 'pg_account'; 
+    $message = t(variable_get('pg_account_user_message_add_body',PG_ACCOUNT_ADD_BALANCE_USER_MESSAGE));
+              
+    $notice->message = token_replace($message, array('pg_account' => $tokens));
+
+    $subject = t(variable_get('pg_account_user_title_add',PG_ACCOUNT_ADD_BALANCE_USER_TITLE));
+    
+    $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+
+    $notice->format = variable_get('pg_account_user_message_add_format','filtered_html');
+    
+    notices_save($notice);
+    
     drupal_goto('/user/'.$account->uid.'/balance'); 
   }
 }
@@ -374,44 +398,68 @@ function pg_account_withdrawByOperator_submit($form, &$form_state){
       '!user' => $account->name,
       '!formated_amount' => pgapi_format_price_plain($data->amount))));
     
+    //create tokens data
+    $tokens['username'] = $account->name;
+    $tokens['operatorname'] = $user->name;
+    $tokens['description'] = $form_state['values']['description'];
+    $tokens['amount'] = pgapi_format_price_plain($data->amount);
+    
+    $balance=pg_account_balance_load($account->uid);
+    $tokens['balance'] = pgapi_format_price_plain($balance->balance);
 
-/*
-    $language = user_preferred_language($account);
-    $variables = user_mail_tokens($account, $language);
-    
-    $variables['!formated_amount'] =  pgapi_format_price_plain('pg_account',$form_state['values']['amount'],pg_account_getCurrentSymbol($account) );
-  	$variables['!operatorname'] = $user->name;
-  	$variables['!reason'] = $form_state['values']['description'];
-  	
-  	$balance=pg_account_balance_load($account->uid);
-  	$variables['!balance'] = pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($account));
-  	
-  	  	
-    $notice->uid = $account->uid;
-    $notice->teaser = t('Balance updated by !operatorname. New balance is !balance', $variables, $language->language);
-    $notice->body = t("Dear !username
-Operator !operatorname withdraw !formated_amount from your balance with comment :
-!reason
-
-Your current Balance: !balance
-", $variables, $language->language);
-    $notice->callback = 'pg_account';
-    
-    notice_save($notice);
-    
-    $admin_uid=variable_get('pg_account_admin_uid','1');
-    if(!empty($admin_uid)){
-      //notify admin about balance update
-      $noticeadmin->uid=$admin_uid;
-      $noticeadmin->teaser = t('Withdraw !formated_amount funds from !username by !operatorname', $variables, $language->language);
-      $noticeadmin->body = t("Operator !operatorname withdraw !formated_amount from !username balance with comment :
-  !reason
+    $roles = variable_get('pg_account_roles',array());
+    if(!empty($roles)){
+      $sent_uids = array();
+      foreach($roles as $rid => $val){
+        if($val){
+          //get users
+          $users = db_select('users_roles', 'ur')
+          ->fields('ur',array('uid'))
+          ->condition('ur.rid',$rid)
+          ->execute()
+          ->fetchAll();
+          foreach($users as $u){
+            if(!in_array($u->uid,$sent_uids)){
+              $sent_uids[]=$u->uid;
   
-  New balance is: !balance
-  ", $variables, $language->language);
-      $noticeadmin->callback = 'pg_account';
-      notice_save($noticeadmin);
-    } */
+              //send notice
+              $notice = new stdClass();
+              $notice->uid = $u->uid;
+              $notice->provider = 'pg_account'; 
+              
+              $message = t(variable_get('pg_account_admin_message_sub_body',PG_ACCOUNT_SUB_BALANCE_ADMIN_MESSAGE));
+              
+              $notice->message = token_replace($message, array('pg_account' => $tokens));
+
+              $subject = t(variable_get('pg_account_admin_title_sub',PG_ACCOUNT_SUB_BALANCE_ADMIN_TITLE));
+              
+              $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+
+              $notice->format = variable_get('pg_account_admin_message_sub_format','filtered_html');
+              notices_save($notice);
+            }
+          }
+        }
+      }
+    }
+    
+    //send notice to user
+    $balance=pg_account_balance_load($account->uid);
+    
+    $notice = new stdClass();
+    $notice->uid = $data->uid;
+    $notice->provider = 'pg_account'; 
+    $message = t(variable_get('pg_account_user_message_sub_body',PG_ACCOUNT_SUB_BALANCE_USER_MESSAGE));
+              
+    $notice->message = token_replace($message, array('pg_account' => $tokens));
+
+    $subject = t(variable_get('pg_account_user_title_sub',PG_ACCOUNT_SUB_BALANCE_USER_TITLE));
+    
+    $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+
+    $notice->format = variable_get('pg_account_user_message_sub_format','filtered_html');
+    
+    notices_save($notice);
     
   }else{
     drupal_set_message(t('We could not process your request.%user doesn\'t have enough money.', array( '%user' => $account->name)));
@@ -513,7 +561,8 @@ function pg_account_account_send_validate($form, &$form_state) {
   }
   
   if ($send_to_account = user_load_by_name($form_state['values']['send_to'])) {
-    if($user->uid == $send_to_account->uid OR $form_state['uid'] == $send_to_account->uid){
+//    if($user->uid == $send_to_account->uid OR $form_state['uid'] == $send_to_account->uid){
+    if($form_state['uid'] == $send_to_account->uid){
       form_set_error('send_to', t('Please enter another account name.'));
     }
   }else{
@@ -590,6 +639,31 @@ function pg_account_account_send_submit($form, &$form_state) {
     
     pgapi_transaction_save($transaction);
     
+    //create tokens data
+    $tokens['username'] = $account->name;
+    $tokens['username_received'] = $send_to_account->name;
+    $tokens['description'] = $data->description;
+    $tokens['amount'] = pgapi_format_price_plain($data->amount);
+    
+    $balance=pg_account_balance_load($account->uid);
+    $tokens['balance'] = pgapi_format_price_plain($balance->balance);
+
+    //send notice
+    $notice = new stdClass();
+    $notice->uid = $data->uid;
+    $notice->provider = 'pg_account'; 
+    $message = t(variable_get('pg_account_user_message_send_body',PG_ACCOUNT_SEND_BALANCE_USER_MESSAGE));
+              
+    $notice->message = token_replace($message, array('pg_account' => $tokens));
+
+    $subject = t(variable_get('pg_account_user_title_send',PG_ACCOUNT_SEND_BALANCE_USER_TITLE));
+    
+    $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+
+    $notice->format = variable_get('pg_account_user_message_send_format','filtered_html');
+    
+    notices_save($notice);
+        
     //add balance to $send_to_account
     $data = new stdClass();
     $data->amount = $form_state['values']['amount'];
@@ -613,7 +687,7 @@ function pg_account_account_send_submit($form, &$form_state) {
     $transaction->uid=$data->uid;
     
     if(!isset($data->sender)){
-      $data->sender = $user->uid;
+      $data->sender = $account->uid;
     }
     
     if(!isset($data->title)){
@@ -641,6 +715,31 @@ function pg_account_account_send_submit($form, &$form_state) {
       $transaction->workflow = pgapi_get_workflow_id('completed');
       
       pgapi_transaction_save($transaction);
+      
+      //create tokens data
+      $tokens['username'] = $account->name;
+      $tokens['username_received'] = $send_to_account->name;
+      $tokens['description'] = $data->description;
+      $tokens['amount'] = pgapi_format_price_plain($data->amount);
+      
+      $balance=pg_account_balance_load($send_to_account->uid);
+      $tokens['balance'] = pgapi_format_price_plain($balance->balance);
+  
+      //send notice
+      $notice = new stdClass();
+      $notice->uid = $data->uid;
+      $notice->provider = 'pg_account'; 
+      $message = t(variable_get('pg_account_user_message_receive_body',PG_ACCOUNT_RECEIVE_BALANCE_USER_MESSAGE));
+                
+      $notice->message = token_replace($message, array('pg_account' => $tokens));
+  
+      $subject = t(variable_get('pg_account_user_title_receive',PG_ACCOUNT_RECEIVE_BALANCE_USER_TITLE));
+      
+      $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+  
+      $notice->format = variable_get('pg_account_user_message_receive_format','filtered_html');
+
+      notices_save($notice);    
     }
 
     

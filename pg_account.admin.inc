@@ -93,213 +93,237 @@ function pg_account_pending($t){
 
 function pg_account_settings(){
   
-  $count=1;
-  if(module_exists('locale') ){
-    $lang_list = language_list('enabled');
-    $count = count($lang_list[1]);
-  }
+  $roles = array_map('check_plain', user_roles(TRUE));
 
-  if($count > 1 ){
-    $default = language_default();
-    $langs=variable_get('pg_account_rates',array());
-    foreach($lang_list[1] as $key => $lang){
-      if(empty($langs[$key])){
-        if($key == $default->language){
-          $langs[$key]['pg_account_rate']= variable_get('pg_account_rate','1.00');   
-          $langs[$key]['pg_account_symbol']=variable_get('pg_account_symbol','$');
-          $langs[$key]['pg_account_decimal_places']=variable_get('pg_account_decimal_places',2);
-          $langs[$key]['pg_account_decimal']=variable_get('pg_account_decimal','.');
-          $langs[$key]['pg_account_thousands']=variable_get('pg_account_thousands',',');
-          $langs[$key]['pg_account_symbol_position']= variable_get('pg_account_symbol_position',1);
-        }else{
-          $langs[$key]['pg_account_rate']= '';   
-          $langs[$key]['pg_account_symbol']='';
-          $langs[$key]['pg_account_decimal_places']='';
-          $langs[$key]['pg_account_decimal']='';
-          $langs[$key]['pg_account_thousands']='';
-          $langs[$key]['pg_account_symbol_position']= '';
-        }
-      }
+  $form['pg_account_operator_messages'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Operator messages'),
+    '#description' => t('Please use tokens to form title and message for notifications based on balance adjustment by operator.')
+  );
 
-      $form[$key]=array(
-        '#type' => 'fieldset',
-        '#title' => t('Currency setting for !lang', array('!lang' => $lang->name)),
-        '#tree' => TRUE,
-      );
-      
-      $form[$key]['pg_account_rate'] = array(
-        '#type'          => 'textfield',
-        '#title'         => t('Rate to site currency'),
-        '#default_value' => $langs[$key]['pg_account_rate'],
-        '#description'   => t("Please enter Account Balance rate according to site currency."),
-        '#required'      => true,
-      );
-      $form[$key]['pg_account_symbol'] = array(
-        '#type'          => 'textfield',
-        '#title'         => t('Symbol'),
-        '#default_value' => $langs[$key]['pg_account_symbol'],
-        '#description'   => t("Please enter symbol of the Account Balance currency."),
-        '#required'      => true,
-      );
-      
-    
-      $form[$key]['pg_account_decimal_places'] = array(
-        '#type'          => 'textfield',
-        '#title'         => t('Decimal places'),
-        '#default_value' => $langs[$key]['pg_account_decimal_places'],
-        '#description'   => t("Please enter number of decimal places."),
-        '#required'      => true,
-      );
+  $form['pg_account_operator_messages']['add'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Add balance'),
+  );
+  $form['pg_account_operator_messages']['add']['pg_account_admin_title_add'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('pg_account_admin_title_add',PG_ACCOUNT_ADD_BALANCE_ADMIN_TITLE),
+    '#size' => 150,    
+    '#maxlength' => 255,
+  );
+
+  $form['pg_account_operator_messages']['add']['pg_account_admin_message_add'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Message'),
+    '#default_value' => variable_get('pg_account_admin_message_add_body',PG_ACCOUNT_ADD_BALANCE_ADMIN_MESSAGE),
+    '#rows' => 6,
+    '#resizable' => TRUE,    
+    '#format' => variable_get('pg_account_admin_message_add_format',NULL),
+  );
+
+  $form['pg_account_operator_messages']['add']['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('pg_account'),
+  );
+
+  $form['pg_account_operator_messages']['sub'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Withdraw balance'),
+  );
+  $form['pg_account_operator_messages']['sub']['pg_account_admin_title_sub'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('pg_account_admin_title_sub',PG_ACCOUNT_SUB_BALANCE_ADMIN_TITLE),
+    '#size' => 150,    
+    '#maxlength' => 255,
+  );
+
+  $form['pg_account_operator_messages']['sub']['pg_account_admin_message_sub'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Message'),
+    '#default_value' => variable_get('pg_account_admin_message_sub_body',PG_ACCOUNT_SUB_BALANCE_ADMIN_MESSAGE),
+    '#rows' => 6,
+    '#resizable' => TRUE,    
+    '#format' => variable_get('pg_account_admin_message_sub_format',NULL),
+  );
+
+  $form['pg_account_operator_messages']['sub']['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('pg_account'),
+  );
   
-      $form[$key]['pg_account_decimal'] = array(
-        '#type'          => 'textfield',
-        '#title'         => t('Decimal delimiter'),
-        '#default_value' => $langs[$key]['pg_account_decimal'],
-        '#description'   => t("Please enter decimal delimiter."),
-        '#required'      => true,
-      );
+  $form['pg_account_user_messages'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('User messages'),
+    '#description' => t('Please use tokens to form title and message for notifications based on balance adjustment by operator .')
+  );
+
+  $form['pg_account_user_messages']['add'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Add balance'),
+  );
+
+  $form['pg_account_user_messages']['add']['pg_account_user_title_add'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('pg_account_user_title_add',PG_ACCOUNT_ADD_BALANCE_USER_TITLE),
+    '#size' => 150,    
+    '#maxlength' => 255,
+  );
+
+  $form['pg_account_user_messages']['add']['pg_account_user_message_add'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Message'),
+    '#default_value' => variable_get('pg_account_user_message_add_body',PG_ACCOUNT_ADD_BALANCE_USER_MESSAGE),
+    '#rows'               => 6,
+    '#resizable'          => TRUE,    
+    '#format' => variable_get('pg_account_user_message_add_format',NULL),
+  );
+
+  $form['pg_account_user_messages']['add']['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('pg_account'),
+  );
+
+  $form['pg_account_user_messages']['sub'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Withdraw from balance'),
+  );
+
+  $form['pg_account_user_messages']['sub']['pg_account_user_title_sub'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('pg_account_user_title_sub',PG_ACCOUNT_SUB_BALANCE_USER_TITLE),
+    '#size' => 150,    
+    '#maxlength' => 255,
+  );
+
+  $form['pg_account_user_messages']['sub']['pg_account_user_message_sub'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Message'),
+    '#default_value' => variable_get('pg_account_user_message_sub_body',PG_ACCOUNT_SUB_BALANCE_USER_MESSAGE),
+    '#rows'               => 6,
+    '#resizable'          => TRUE,    
+    '#format' => variable_get('pg_account_user_message_sub_format',NULL),
+  );
+
+  $form['pg_account_user_messages']['sub']['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('pg_account'),
+  );  
+
+  $form['pg_account_user_messages']['send'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Send transfer'),
+  );
+
+  $form['pg_account_user_messages']['send']['pg_account_user_title_add'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('pg_account_user_title_send',PG_ACCOUNT_SEND_BALANCE_USER_TITLE),
+    '#size' => 150,    
+    '#maxlength' => 255,
+  );
+
+  $form['pg_account_user_messages']['send']['pg_account_user_message_send'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Message'),
+    '#default_value' => variable_get('pg_account_user_message_send_body',PG_ACCOUNT_SEND_BALANCE_USER_MESSAGE),
+    '#rows'               => 6,
+    '#resizable'          => TRUE,    
+    '#format' => variable_get('pg_account_user_message_send_format',NULL),
+  );
+
+  $form['pg_account_user_messages']['send']['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('pg_account'),
+  );
+
+  $form['pg_account_user_messages']['receive'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Receive transfer'),
+  );
+
+  $form['pg_account_user_messages']['receive']['pg_account_user_title_receive'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('pg_account_user_title_receive',PG_ACCOUNT_RECEIVE_BALANCE_USER_TITLE),
+    '#size' => 150,    
+    '#maxlength' => 255,
+  );
+
+  $form['pg_account_user_messages']['receive']['pg_account_user_message_receive'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Message'),
+    '#default_value' => variable_get('pg_account_user_message_receive_body',PG_ACCOUNT_RECEIVE_BALANCE_USER_MESSAGE),
+    '#rows'               => 6,
+    '#resizable'          => TRUE,    
+    '#format' => variable_get('pg_account_user_message_receive_format',NULL),
+  );
+
+  $form['pg_account_user_messages']['receive']['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('pg_account'),
+  );  
   
-      $form[$key]['pg_account_thousands'] = array(
-        '#type'          => 'textfield',
-        '#title'         => t('Thousands places'),
-        '#default_value' => $langs[$key]['pg_account_thousands'],
-        '#description'   => t("Please enter thousands delimeter."),
-        '#required'      => true,
-      );
+  $form['pg_account_roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Roles'),
+    '#default_value' => variable_get('pg_account_roles',array()),
+    '#options' => $roles,
+    '#description' => t('Please select role to send notification about user balance changes.')
+  );
   
-      $form[$key]['pg_account_symbol_position'] = array(
-        '#type'          => 'radios',
-        '#title'         => t('Simbol position'),
-        '#options'       => array ( 1 => t('Left'), 0 => t('Right')),
-        '#default_value' => $langs[$key]['pg_account_symbol_position'],
-        '#description'   => t("Please select symbol position."),
-        '#required'      => true,
-      );
-    }
-  }else{
-    $form['pg_account_rate'] = array(
-      '#type'          => 'textfield',
-      '#title'         => t('Rate to site currency'),
-      '#default_value' => variable_get('pg_account_rate','1.00'),
-      '#description'   => t("Please enter Account Balance rate according to site currency."),
-      '#required'      => true,
-    );
-    $form['pg_account_symbol'] = array(
-      '#type'          => 'textfield',
-      '#title'         => t('Symbol'),
-      '#default_value' => variable_get('pg_account_symbol','$'),
-      '#description'   => t("Please enter symbol of the Account Balance currency."),
-      '#required'      => true,
-    );
-    
-  
-    $form['pg_account_decimal_places'] = array(
-      '#type'          => 'textfield',
-      '#title'         => t('Decimal places'),
-      '#default_value' => variable_get('pg_account_decimal_places',2),
-      '#description'   => t("Please enter number of decimal places."),
-      '#required'      => true,
-    );
-
-    $form['pg_account_decimal'] = array(
-      '#type'          => 'textfield',
-      '#title'         => t('Decimal delimiter'),
-      '#default_value' => variable_get('pg_account_decimal','.'),
-      '#description'   => t("Please enter decimal delimiter."),
-      '#required'      => true,
-    );
-
-    $form['pg_account_thousands'] = array(
-      '#type'          => 'textfield',
-      '#title'         => t('Thousands places'),
-      '#default_value' => variable_get('pg_account_thousands',','),
-      '#description'   => t("Please enter thousands delimeter."),
-      '#required'      => true,
-    );
-
-    $form['pg_account_symbol_position'] = array(
-      '#type'          => 'radios',
-      '#title'         => t('Simbol position'),
-      '#options'       => array ( 1 => t('Left'), 0 => t('Right')),
-      '#default_value' => variable_get('pg_account_symbol_position',1),
-      '#description'   => t("Please select symbol position."),
-      '#required'      => true,
-    );  
-  }
-
   $form['submit'] = array(
     '#type'  => 'submit',
-    '#value' => t('Save'),
+    '#value' => t('Save changes'),
   );
 
   return $form;
 }
 
 
-function pg_account_settings_validate($form, &$form_state) {
-  $count=1;
-  if(module_exists('locale') ){
-    $lang_list = language_list('enabled');
-    $count = count($lang_list[1]);
-  }
-
-  if($count > 1 ){
-    foreach($lang_list[1] as $key => $lang){
-      if($form_state['values'][$key]['pg_account_rate']<=0){
-        form_set_error($key.'][pg_account_rate', t('Rate must be more than 0.', array('%rate' => $form_state['values'][$key]['pg_account_rate'])));
-      }  
-    }
-    
-  }else{
-    if($form_state['values']['pg_account_rate']<=0){
-      form_set_error('pg_account_rate', t('Rate must be more than 0.', array('%rate' => $form_state['values']['pg_account_rate'])));
-    }
-  }
-}
-
 function pg_account_settings_submit($form, &$form_state){
-  $count=1;
-  if(module_exists('locale') ){
-    $lang_list = language_list('enabled');
-    $count = count($lang_list[1]);
-  }
+  print_r($form_state);
+  exit();
+  variable_set('pg_account_roles',$form_state['values']['pg_account_roles']);
 
-  if($count > 1 ){
-    
-    $langs=variable_get('pg_account_rates',array());
-    $default = language_default();
-    
-    foreach($lang_list[1] as $key => $lang){
-      if($default->language  == $key ){
-        variable_set('pg_account_rate',$form_state['values'][$key]['pg_account_rate']);
-        variable_set('pg_account_symbol',$form_state['values'][$key]['pg_account_symbol']);
-        variable_set('pg_account_decimal_places',$form_state['values'][$key]['pg_account_decimal_places']);
-        variable_set('pg_account_decimal',$form_state['values'][$key]['pg_account_decimal']);
-        variable_set('pg_account_thousands',$form_state['values'][$key]['pg_account_thousands']);
-        variable_set('pg_account_symbol_position',$form_state['values'][$key]['pg_account_symbol_position']);
-      
-      }
-      $langs[$key]=$form_state['values'][$key];
-    }
-    variable_set('pg_account_rates',$langs);
-    
-  }else{
-    if(isset($form_state['values']['pg_account_rate']))
-      variable_set('pg_account_rate',$form_state['values']['pg_account_rate']);
-    if(isset($form_state['values']['pg_account_symbol']))
-      variable_set('pg_account_symbol',$form_state['values']['pg_account_symbol']);
-  
-    if(isset($form_state['values']['pg_account_decimal_places']))
-      variable_set('pg_account_decimal_places',$form_state['values']['pg_account_decimal_places']);
-  
-    if(isset($form_state['values']['pg_account_decimal']))
-      variable_set('pg_account_decimal',$form_state['values']['pg_account_decimal']);
-  
-    if(isset($form_state['values']['pg_account_thousands']))
-      variable_set('pg_account_thousands',$form_state['values']['pg_account_thousands']);
-  
-    if(isset($form_state['values']['pg_account_symbol_position']))
-      variable_set('pg_account_symbol_position',$form_state['values']['pg_account_symbol_position']);
-  }
-    
+  variable_set('pg_account_admin_title_add',$form_state['values']['pg_account_admin_title_add']);
+
+  variable_set('pg_account_admin_message_add_body',$form_state['values']['pg_account_admin_message_add']['value']);    
+
+  variable_set('pg_account_admin_message_add_format',$form_state['values']['pg_account_admin_message_add']['format']);    
+
+  variable_set('pg_account_admin_title_sub',$form_state['values']['pg_account_admin_title_sub']);
+
+  variable_set('pg_account_admin_message_sub_body',$form_state['values']['pg_account_admin_message_sub']['value']);    
+
+  variable_set('pg_account_admin_message_sub_format',$form_state['values']['pg_account_admin_message_sub']['format']);    
+
+  variable_set('pg_account_user_title_add',$form_state['values']['pg_account_user_title_add']);
+
+  variable_set('pg_account_user_message_add_body',$form_state['values']['pg_account_user_message_add']['value']);    
+
+  variable_set('pg_account_user_message_add_format',$form_state['values']['pg_account_user_message_add']['format']);    
+
+  variable_set('pg_account_user_title_sub',$form_state['values']['pg_account_user_title_sub']);
+
+  variable_set('pg_account_user_message_sub_body',$form_state['values']['pg_account_user_message_sub']['value']);    
+
+  variable_set('pg_account_user_message_sub_format',$form_state['values']['pg_account_user_message_sub']['format']);    
+
+  variable_set('pg_account_user_title_send',$form_state['values']['pg_account_user_title_send']);
+
+  variable_set('pg_account_user_message_send_body',$form_state['values']['pg_account_user_message_send']['value']);
+
+  variable_set('pg_account_user_message_send_format',$form_state['values']['pg_account_user_message_send']['format']);    
+
+  variable_set('pg_account_user_title_receive',$form_state['values']['pg_account_user_title_receive']);
+
+  variable_set('pg_account_user_message_receive_body',$form_state['values']['pg_account_user_message_receive']['value']);    
+
+  variable_set('pg_account_user_message_receive_format',$form_state['values']['pg_account_user_message_receive']['format']);    
+
+  drupal_set_message(t('Changes saved.'));      
 }

@@ -3,7 +3,9 @@ description = Provide balance per user on Drupal website.
 package = "Commerce"
 
 dependencies[] = altpager
-;dependencies[] = formfilterapi
+dependencies[] = formfilterapi
 dependencies[] = pgapi
+dependencies[] = notices
+dependencies[] = token
 
 core = "7.x"
