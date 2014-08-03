@@ -137,7 +137,7 @@ function pg_account_user($type, &$edit, &$user, $category = NULL) {
     case 'load':
       if(user_access('pg_account balance',$user)){
         $balance=pg_account_balance_load($user->uid);
-        $user->balance = $balance->balance
+        $user->balance = $balance->balance;
       }
       return $user;
     case 'delete':

@@ -477,7 +477,7 @@ function pg_account_addFunds($form, $form_state = NULL){
   }else{
     $form['amount'] = array(
       '#type'  => 'textfield',
-      '#title' => t('Amount (!currency)',array('!currency'=>pg_account_getCurrentSymbol())),
+      '#title' => t('Amount'),
       '#required'  => TRUE,
     );
     
@@ -506,7 +506,7 @@ function pg_account_addFunds_submit($form, &$form_state){
     $transaction->amount = $amount;
     $transaction->service='pg_account';
     $transaction->uid = $user->uid;
-    $transaction->title = t('Add Funds to account for !user',array('!user' => $user->name));
+    $transaction->title = t('Add Balance funds for !user',array('!user' => $user->name));
     $transaction->description = '';
     pgapi_transaction_save($transaction);
     
