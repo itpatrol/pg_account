@@ -26,11 +26,19 @@ function pg_account_history(){
   
   foreach ($transactions as $txn) {
 
-    $description = $txn->description ? $txn->description  : $txn->title;
+    $description = $txn->title.'<br>' ; //.$txn->description;
+    if($txn->status == PG_COMPLETED){
+      if(!empty($txn->gateway)){
+        if($txn->amount > 0){
+          $description .= t('Paid by: !gateway',array('!gateway' => module_invoke($txn->gateway, 'pgapi_gw','display name'))) . '<br>';
+        }else{
+        }
+      }
+    }
+    if(!empty($txn->description)){
+      $description .= t('Description:') . ' ' . $txn->description;
+    }
 
-    if($txn->status == PG_CANCELED){
-        $description .= $txn->title.'<br>'.$txn->description;
-    }    
     $account = user_load($txn->uid);
     $class = array($txn->operation, 'status-'.$txn->status, 'workflow-'.$txn->workflow );    
     $rows[] = array(

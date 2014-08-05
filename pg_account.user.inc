@@ -46,12 +46,15 @@ function pg_account_personal_history($account){
     if($txn->status == PG_COMPLETED){
       if(!empty($txn->gateway)){
         if($txn->amount > 0){
-          $description .= t('Paid by: !gateway',array('!gateway' => module_invoke($txn->gateway, 'pgapi_gw','display name')));
+          $description .= t('Paid by: !gateway',array('!gateway' => module_invoke($txn->gateway, 'pgapi_gw','display name'))) . '<br>';
         }else{
-          $description .= t('Description:') . ' ' . $txn->description;
         }
       }
     }
+    if(!empty($txn->description)){
+      $description .= t('Description:') . ' ' . $txn->description;
+    }
+    
     $class = array($txn->operation, 'status-'.$txn->status, 'workflow-'.$txn->workflow );    
     
     $rows[] = array(
