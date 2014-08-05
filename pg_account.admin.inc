@@ -221,7 +221,7 @@ function pg_account_settings(){
     '#title' => t('Send transfer'),
   );
 
-  $form['pg_account_user_messages']['send']['pg_account_user_title_add'] = array(
+  $form['pg_account_user_messages']['send']['pg_account_user_title_send'] = array(
     '#type' => 'textfield',
     '#title' => t('Title'),
     '#default_value' => variable_get('pg_account_user_title_send',PG_ACCOUNT_SEND_BALANCE_USER_TITLE),
