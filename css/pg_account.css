@@ -26,7 +26,7 @@ tr.status-1 {
   color: blue;
 }
 
-tr.status-4 td,tr.status-5 td,tr.status-6 td {
+tr.status-3 td, tr.status-4 td,tr.status-5 td,tr.status-6 td {
   background-color: #FF8E8E;
   color: white;
 }

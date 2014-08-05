@@ -42,13 +42,16 @@ function pg_account_personal_history($account){
   $transactions= $query->execute()->fetchAll();
 
   foreach ($transactions as $txn) {
-
-    $description = $txn->description ? $txn->description  : $txn->title;
-
-    if($txn->status == PG_CANCELED){
-        $description .= $txn->title.'<br>'.$txn->description;
+    $description = $txn->title.'<br>' ; //.$txn->description;
+    if($txn->status == PG_COMPLETED){
+      if(!empty($txn->gateway)){
+        if($txn->amount > 0){
+          $description .= t('Paid by: !gateway',array('!gateway' => module_invoke($txn->gateway, 'pgapi_gw','display name')));
+        }else{
+          $description .= t('Description:') . ' ' . $txn->description;
+        }
+      }
     }
-
     $class = array($txn->operation, 'status-'.$txn->status, 'workflow-'.$txn->workflow );    
     
     $rows[] = array(
