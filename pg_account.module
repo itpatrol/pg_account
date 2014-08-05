@@ -419,73 +419,86 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
   return $ret;
 }
 
-function pg_account_pgapi_transaction($op,$t){
-
-  if($t->gateway != 'pg_account' && $t->service == 'pg_account'){
-
-    $account=user_load($t->uid);
+function pg_account_pgapi_transaction($op, $t, $target = NULL){
+  if($t->service == 'pg_account' && $target == 'service'){
+    global $user;
+    $account = user_load($t->uid);
     
-  	$balance=pg_account_balance_load($t->uid);
-  	$variables['!balance'] = pgapi_format_price($balance->balance);
-  	$variables['!txnid'] = $t->txnid;
-  	  	
-  /*  switch($op){
-	    case PG_COMPLETED:
-	        $tr=$t;
-	        //fix it. Get amount from pg_account_transaction by pgapi_txnid
-	        $orign = db_fetch_object(db_query("SELECT * FROM {pg_account_transaction} WHERE pgapi_txnid = %d", $t->txnid));
-	        
-	        //$tr->amount = $t->amount * pg_account_getCurrentRate($user);
-	        $tr->amount = $orign->amount;
-	        
-	        if(pg_account_balance_add($tr)){
-            $t->description=t('Add Funds to account via %paymentsystem', array('%paymentsystem' => module_invoke($t->method, 'pgapi_gw','display name')));
-            $t->workflow = pgapi_get_workflow_id('completed');
-            
-            
-            $balance=pg_account_balance_load($t->uid);
-            $variables['!balance'] = pgapi_format_price('pg_account',$balance->balance,pg_account_getCurrentSymbol($account));
-            
-            $notice->uid = $t->uid;
-            $notice->teaser = t('Balance updated. New balance is !balance', $variables, $language->language);
-            $notice->body = t("Dear !username
-Your Payment #!txnid has been completed.
-
-Your current Balance: !balance
-        ", $variables, $language->language);
-            $notice->callback = 'pg_account';
-            
-            notice_save($notice);
-	        }
-	      break;
-	    case PG_DENIED:
-	        $t->workflow = pgapi_get_workflow_id('security violation');
-	        $notice->uid = $t->uid;
-          $notice->teaser = t('Balance update failed. Current balance is !balance.', $variables, $language->language);
-          $notice->body = t("Dear !username
-Your Payment #!txnid has been canceled.
-
-Your current Balance: !balance
-      ", $variables, $language->language);
-          $notice->callback = 'pg_account';
-          
-          notice_save($notice); 
-	      break;
-	    case PG_FAILED:
-	        $t->workflow = pgapi_get_workflow_id('canceled');
-	        $notice->uid = $t->uid;
-          $notice->teaser = t('Balance update failed. Current balance is !balance.', $variables, $language->language);
-          $notice->body = t("Dear !username
-Your Payment #!txnid has been canceled.
-
-Your current Balance: !balance
-      ", $variables, $language->language);
-          $notice->callback = 'pg_account';
-          
-          notice_save($notice);
-	      break;
-	  }//switch*/
+    $t_old = pgapi_transaction_load($t->txnid);
+  	$balance = pg_account_balance_load($t->uid);
+    	
+    $tokens['username'] = $account->name;
+    $tokens['operatorname'] = $user->name;
+    $tokens['description'] = $t->description;
+    $tokens['amount'] = pgapi_format_price_plain($t->amount);
     
+    $balance=pg_account_balance_load($account->uid);
+    $tokens['balance'] = pgapi_format_price_plain($balance->balance);
+
+    switch($op){
+      case PG_COMPLETED:
+        if($t_old->status != PG_COMPLETED){
+          //send notice
+          $data = new stdClass();
+          $data->amount = $t->amount;
+          $data->uid = $account->uid;
+
+          if(pg_account_balance_add($data)){
+            $notice = new stdClass();
+            $notice->uid = $account->uid;
+            $notice->provider = 'pg_account'; 
+            if($user->uid != 0 ){
+              $tokens['description'] = t('Transaction completed by operation !username.', array('!username' => $user->name)) . "\n" . $tokens['description'];
+            }
+            $message = t(variable_get('pg_account_user_message_add_body',PG_ACCOUNT_ADD_BALANCE_USER_MESSAGE));
+            
+            $notice->message = token_replace($message, array('pg_account' => $tokens));
+  
+            $subject = t(variable_get('pg_account_user_title_add',PG_ACCOUNT_ADD_BALANCE_USER_TITLE));
+            
+            $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+  
+            $notice->format = variable_get('pg_account_user_message_add_format','filtered_html');
+            notices_save($notice);
+          }
+        }
+        break;
+      case PG_PENDING:
+      case PG_FAILED:
+      case PG_DENIED:
+      case PG_REFUNDED:
+      case PG_RECEIVED:
+      case PG_CANCELED:
+        if($t_old->status == PG_COMPLETED){
+          $data = (object)(NULL);
+          $data->amount = $t->amount;
+          $data->uid = $account->uid;
+
+          if(pg_account_balance_sub($data)){
+          
+            //send notice
+            $notice = new stdClass();
+            $notice->uid = $account->uid;
+            $notice->provider = 'pg_account'; 
+            
+            if($user->uid != 0 ){
+              $tokens['description'] = t('Cancelling transaction by operation !username.', array('!username' => $user->name)) . "\n" . $tokens['description'];
+            }          
+            $message = t(variable_get('pg_account_user_message_sub_body',PG_ACCOUNT_SUB_BALANCE_USER_MESSAGE));
+            
+            $notice->message = token_replace($message, array('pg_account' => $tokens));
+  
+            $subject = t(variable_get('pg_account_user_title_sub',PG_ACCOUNT_SUB_BALANCE_USER_TITLE));
+            
+            $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+  
+            $notice->format = variable_get('pg_account_user_message_sub_format','filtered_html');
+            notices_save($notice);
+          }
+        }
+        break;
+        
+    }	
   }//if
 }
 
@@ -536,7 +549,7 @@ function pg_account_balance_add($data) {
     return false;
   }
   $b = pg_account_balance_load($data->uid);
-    
+  
   if(isset($b->norecord)){
     $b->balance = $data->amount;
     $b->uid = $data->uid;
