@@ -32,7 +32,7 @@ function pg_account_personal_history($account){
   $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort')->extend('FormFilterAPI');
   $query->fields('pat');    
   $query->leftjoin('pgapi_transaction', 'pgt', 'pat.pgapi_txnid = %alias.txnid');
-  $query->fields('pgt');    
+  $query->fields('pgt', array('status','workflow', 'description', 'title', 'changed'));    
   $query->condition('pat.uid', $account->uid);
   $query->processFilters('pg_account_personal_history');
   $query->extend('TableSort');
@@ -189,7 +189,7 @@ function pg_account_addFundsByOperator_submit($form, &$form_state){
   if(!isset($data->uid)){
     $data->uid = $user->uid;
   }
-  $transaction->uid=$data->uid;
+  $transaction->uid = $data->uid;
   
   if(!isset($data->sender)){
     $data->sender = $user->uid;
