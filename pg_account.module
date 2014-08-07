@@ -437,7 +437,7 @@ function pg_account_submit($form,$form_state){
   $data = new stdClass();
   $data->amount = $transaction->amount;
   $data->uid = $transaction->uid;
-//  $data->pgapi_txnid = $t->txnid;
+
   if(pg_account_balance_sub($data)){
     $transaction->status = pgapi_get_status_id('completed');
     pgapi_transaction_save($transaction);
@@ -448,6 +448,31 @@ function pg_account_submit($form,$form_state){
     $taccount->uid = $transaction->uid;
     $taccount->pgapi_txnid = $transaction->txnid;
     pg_account_transaction_save($taccount);
+    
+    $account = user_load($taccount->uid);
+    //create tokens data
+    $tokens['username'] = $account->name;
+    $tokens['description'] = $transaction->title."\n".$transaction->description."\n";
+    $tokens['amount'] = pgapi_format_price_plain($data->amount);
+    
+    $balance=pg_account_balance_load($account->uid);
+    $tokens['balance'] = pgapi_format_price_plain($balance->balance);
+    
+    $notice = new stdClass();
+    $notice->uid = $account->uid;
+    $notice->provider = 'pg_account'; 
+    $message = t(variable_get('pg_account_user_message_sub_body',PG_ACCOUNT_SUB_BALANCE_USER_MESSAGE));
+              
+    $notice->message = token_replace($message, array('pg_account' => $tokens));
+
+    $subject = t(variable_get('pg_account_user_title_sub',PG_ACCOUNT_SUB_BALANCE_USER_TITLE));
+    
+    $notice->subject = token_replace($subject, array('pg_account' => $tokens));
+
+    $notice->format = variable_get('pg_account_user_message_sub_format','filtered_html');
+    
+    notices_save($notice);
+
     
   }else{
     $transaction->status = pgapi_get_status_id('failed');
