@@ -364,9 +364,9 @@ function pg_account_provideNotice($op){
 
 
 
-/********************************************************************
- * Pgapi Gateway Hooks
- ********************************************************************/
+/*
+ * Implements hook_pgapi_gw
+ */
 
 function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
   global $user;
@@ -379,17 +379,14 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
       break;
     case 'payment gateway info':
         $balance=pg_account_balance_load($user->uid);
-        if($a4->service != 'pg_account' && $balance->balance  >= ($a3 * pg_account_getCurrentRate())) {
-          $ret['name']=theme('image', drupal_get_path('module','pg_account').'/pg_account.png',t('Balance'),t('Balance'));
-          $ret['price']= array(pg_account_getCurrentSymbol() => $a3 * pg_account_getCurrentRate() );
-        }
         $ret = FALSE;
+
+        if($a4->service != 'pg_account' && $balance->balance  >= $a3) {
+          $ret['name'] = theme('image', array( 'path' => drupal_get_path('module','pg_account').'/pg_account.png', 'alt' => t('Balance'), 'title' => t('Balance')));
+          $format = variable_get('pgapi_currency', array());
+          $ret['price']= array( $format['symbol'] => $a3 );
+        }
       break;
-    case 'get form':
-        $t=$a3;
-        $form_result = $a4;
-        $ret = pg_account_extraform($form_result,$t);
-      break; 
     case 'process form':
         $form_result = $a4;
         $t = $a3;
@@ -414,11 +411,53 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
         
         }
         
-      break;      
+      break;  
+    case 'ajax_form':
+        $t=$a3;
+        return array(
+          'element' => array (
+            'message' => array(
+              '#markup' => t('We will charge !amount from your balance', array ('!amount' => pgapi_format_price_plain($t->amount))),
+            ),
+          ),
+          'submit' => 'pg_account_submit',
+        );
+      break;
   }
   return $ret;
 }
 
+function pg_account_submit($form,$form_state){
+  $values = $form_state['values'];
+  $transaction = pgapi_transaction_load($values['txnid']);
+  $transaction->gateway = 'pg_account';
+  
+  $balance = pg_account_balance_load($transaction->uid);
+        
+  $data = new stdClass();
+  $data->amount = $transaction->amount;
+  $data->uid = $transaction->uid;
+//  $data->pgapi_txnid = $t->txnid;
+  if(pg_account_balance_sub($data)){
+    $transaction->status = pgapi_get_status_id('completed');
+    pgapi_transaction_save($transaction);
+    
+    $taccount = new stdClass();
+    $taccount->amount = (0 - $transaction->amount);
+    $taccount->operation = PG_ACCOUNT_SUB_BALANCE;
+    $taccount->uid = $transaction->uid;
+    $taccount->pgapi_txnid = $transaction->txnid;
+    pg_account_transaction_save($taccount);
+    
+  }else{
+    $transaction->status = pgapi_get_status_id('failed');
+    pgapi_transaction_save($transaction);
+  }    
+}
+
+/*
+ * Implemets hook_pgapi_transaction
+ */
 function pg_account_pgapi_transaction($op, $t, $target = NULL){
   if($t->service == 'pg_account' && $target == 'service'){
     global $user;
@@ -515,15 +554,6 @@ function pg_account_pgapi_callback($t){
   }
 }
 
-function pg_account_extraform($form_state,$t){
-  $account=user_load($t->uid);
-  $form['message'] = array(
-    '#type' => 'markup',
-    '#value' => t('We will charge !amount from your balance', array ('!amount' => pgapi_format_price('pg_account',$t->amount*pg_account_getCurrentRate(),pg_account_getCurrentSymbol($account)))),// $t->amount * pg_account_getCurrentRate()
-  );
-  return $form;
-}
-
 /*
  * API
  */
@@ -532,6 +562,7 @@ function pg_account_transaction_load($txnid) {
   $transaction = db_query("SELECT * FROM {pg_account_transaction} WHERE txnid = :txnid", array ( ':txnid' => $txnid))->fetchObject;
   return $transaction;
 }
+
 function pg_account_transaction_save(&$t) {
   
   if(isset($t->txnid)){
