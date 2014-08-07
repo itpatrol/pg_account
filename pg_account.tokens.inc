@@ -71,7 +71,7 @@ function pg_account_tokens($type, $tokens, array $data = array(), array $options
               $replacements[$original] = $sanitize ? check_plain($replace->operatorname) : $replace->operatorname;
             break;
           case 'description':
-              $replacements[$original] = $sanitize ? check_plain($replace->description) : $replace->description;
+              $replacements[$original] = $replace->description;
             break;
         }
       }
