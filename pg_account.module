@@ -405,7 +405,6 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
 function pg_account_submit($form,$form_state){
   $values = $form_state['values'];
   $transaction = pgapi_transaction_load($values['txnid']);
-  $transaction->gateway = 'pg_account';
   
   $balance = pg_account_balance_load($transaction->uid);
         
@@ -415,7 +414,6 @@ function pg_account_submit($form,$form_state){
 
   if(pg_account_balance_sub($data)){
     $transaction->status = pgapi_get_status_id('completed');
-    pgapi_transaction_save($transaction);
     
     $taccount = new stdClass();
     $taccount->amount = (0 - $transaction->amount);
@@ -437,22 +435,18 @@ function pg_account_submit($form,$form_state){
     $notice->uid = $account->uid;
     $notice->provider = 'pg_account'; 
     $message = t(variable_get('pg_account_user_message_sub_body',PG_ACCOUNT_SUB_BALANCE_USER_MESSAGE));
-              
     $notice->message = token_replace($message, array('pg_account' => $tokens));
-
     $subject = t(variable_get('pg_account_user_title_sub',PG_ACCOUNT_SUB_BALANCE_USER_TITLE));
-    
     $notice->subject = token_replace($subject, array('pg_account' => $tokens));
-
     $notice->format = variable_get('pg_account_user_message_sub_format','filtered_html');
     
     notices_save($notice);
 
-    
   }else{
     $transaction->status = pgapi_get_status_id('failed');
-    pgapi_transaction_save($transaction);
-  }    
+    
+  }
+  pgapi_transaction_save($transaction);   
 }
 
 /*
