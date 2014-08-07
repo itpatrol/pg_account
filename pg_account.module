@@ -387,31 +387,6 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
           $ret['price']= array( $format['symbol'] => $a3 );
         }
       break;
-    case 'process form':
-        $form_result = $a4;
-        $t = $a3;
-        $t->method='pg_account';
-        $balance=pg_account_balance_load($t->uid);
-        
-        $data = (object)(NULL);
-        $data->amount=$t->amount * pg_account_getCurrentRate();
-        $data->method=$t->type;
-        $data->uid=$t->uid;
-        $data->pgapi_txnid=$t->txnid;
-        $data->description=$t->description;
-        
-        if(pg_account_balance_sub($data)){
-          $t->status = pgapi_get_status_id('completed');
-          pgapi_transaction_save($t);
-          return $t;
-        }else{
-          $t->status = pgapi_get_status_id('failed');
-          pgapi_transaction_save($t);
-          return $t;
-        
-        }
-        
-      break;  
     case 'ajax_form':
         $t=$a3;
         return array(
