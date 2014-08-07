@@ -14,7 +14,7 @@ function pg_account_history(){
   $query = db_select('pg_account_transaction', 'pat')->extend('AltPager')->extend('TableSort')->extend('FormFilterAPI');
   $query->fields('pat');    
   $query->leftjoin('pgapi_transaction', 'pgt', 'pat.pgapi_txnid = %alias.txnid');
-  $query->fields('pgt');
+  $query->fields('pgt', array('status','workflow', 'description', 'title', 'changed')); 
   $query->leftjoin('users', 'u', 'pat.uid = %alias.uid');
   $query->fields('u',array('name'));
   $query->processFilters('pg_account_operator_history');  
