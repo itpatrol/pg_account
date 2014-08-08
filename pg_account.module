@@ -372,7 +372,7 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
   global $user;
   switch($op){
     case 'display name':
-        $ret = t('Payment from Account balance');
+        $ret = t('Balance');
       break;
     case 'payment page':
         $ret = url('payment/pgaccount/'.$a3 ,array('absolute' => TRUE));
