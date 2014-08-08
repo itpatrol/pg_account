@@ -382,7 +382,8 @@ function pg_account_pgapi_gw($op,$a3=NULL,$a4=NULL){
         $ret = FALSE;
 
         if($a4->service != 'pg_account' && $balance->balance  >= $a3) {
-          $ret['name'] = theme('image', array( 'path' => drupal_get_path('module','pg_account').'/pg_account.png', 'alt' => t('Balance'), 'title' => t('Balance')));
+          $path = drupal_get_path('module','pg_account').'/pg_account.png';
+          $ret['name'] = '<div style="background: url(/'.$path.') no-repeat left top; padding-left:80px; height:45px; font-weight:bold; padding-top:25px;">'.t('Balance').'</div>';
           $format = variable_get('pgapi_currency', array());
           $ret['price']= array( $format['symbol'] => $a3 );
         }
