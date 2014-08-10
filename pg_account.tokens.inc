@@ -65,11 +65,11 @@ function pg_account_tokens($type, $tokens, array $data = array(), array $options
             break;
           case 'balance-url':
               if(isset($replace->uid)){
-                $replacements[$original] = l(t('Balance'), 'user/' . $replace->uid . '/balance';
+                $replacements[$original] = l(t('Balance'), 'user/' . $replace->uid . '/balance');
               }
               else {
                 $account = user_load_by_name($replace->username);
-                $replacements[$original] = l(t('Balance'), 'user/' . $account->uid . '/balance';
+                $replacements[$original] = l(t('Balance'), 'user/' . $account->uid . '/balance');
               }
             break;
           case 'amount':
