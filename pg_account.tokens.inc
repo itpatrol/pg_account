@@ -31,6 +31,11 @@ function pg_account_token_info() {
     'description' => t("The new, updated balance of username."),
   );
 
+  $info['tokens']['pg_account']['balance-url'] = array(
+    'name' => t('Balance url'),
+    'description' => t("Provide link to balance page."),
+  );
+
   $info['tokens']['pg_account']['amount'] = array(
     'name' => t('Amount'),
     'description' => t("Transaction amount."),
@@ -57,6 +62,15 @@ function pg_account_tokens($type, $tokens, array $data = array(), array $options
         switch ($name) {
           case 'balance':
               $replacements[$original] = $replace->balance;
+            break;
+          case 'balance-url':
+              if(isset($replace->uid)){
+                $replacements[$original] = l(t('Balance'), 'user/' . $replace->uid . '/balance';
+              }
+              else {
+                $account = user_load_by_name($replace->username);
+                $replacements[$original] = l(t('Balance'), 'user/' . $account->uid . '/balance';
+              }
             break;
           case 'amount':
               $replacements[$original] = $replace->amount;
