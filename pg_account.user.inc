@@ -222,8 +222,6 @@ function pg_account_addFundsByOperator_submit($form, &$form_state){
   drupal_set_message(t('You added  !formated_amount to !user account.', array(
     '!user' => $account->name,
     '!formated_amount' => pgapi_format_price_plain($data->amount))));
-
-  pgapi_transaction_save($transaction);
   
   //create tokens data
   $tokens['username'] = $account->name;
