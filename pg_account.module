@@ -128,22 +128,7 @@ function balance_load($uid) {
   return pg_account_balance_load($uid);
 }
 
-/**
- * Implements hook_user()
- */
 
-function pg_account_user($type, &$edit, &$user, $category = NULL) {
-  switch ($type) {
-    case 'load':
-      if(user_access('pg_account balance',$user)){
-        $balance=pg_account_balance_load($user->uid);
-        $user->balance = $balance->balance;
-      }
-      return $user;
-    case 'delete':
-      db_query('DELETE FROM {pg_account_balance} WHERE uid = %d', $user->uid);
-  }
-}
 
 function pg_account_profileAccess($account = NULL) {
   global $user;
@@ -156,6 +141,16 @@ function pg_account_profileAccess($account = NULL) {
   
   return false;
 }
+
+/**
+ * Implements hook_user_delete().
+ */
+function pg_account_delete($account) {
+  db_delete('pg_account_balance')
+          ->condition('uid', $account->uid)
+          ->execute();
+}
+
 
 /**
  * Implements menu_hook()
@@ -478,6 +473,10 @@ function pg_account_pgapi_transaction($op, $t, $target = NULL){
           $data->uid = $account->uid;
 
           if(pg_account_balance_add($data)){
+            
+            $balance=pg_account_balance_load($account->uid);
+            $tokens['balance'] = pgapi_format_price_plain($balance->balance);
+            
             $notice = new stdClass();
             $notice->uid = $account->uid;
             $notice->provider = 'pg_account'; 
@@ -509,6 +508,8 @@ function pg_account_pgapi_transaction($op, $t, $target = NULL){
           $data->uid = $account->uid;
 
           if(pg_account_balance_sub($data)){
+            $balance=pg_account_balance_load($account->uid);
+            $tokens['balance'] = pgapi_format_price_plain($balance->balance);
           
             //send notice
             $notice = new stdClass();
